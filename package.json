@@ -10,5 +10,8 @@
     "build:web-app": "cd web-app && npm run build",
     "build:extension": "cd chrome-extension && npm run build",
     "install:all": "cd backend && npm install && cd ../web-app && npm install && cd ../chrome-extension && npm install"
+  },
+  "dependencies": {
+    "docx": "^9.6.1"
   }
 }
