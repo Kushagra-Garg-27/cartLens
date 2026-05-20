@@ -329,7 +329,7 @@ function setNoMatch(){
 function setQueued(retryNum){
   var el=document.getElementById('scp-main-content');if(!el)return;
   var attempt=retryNum||1;
-  var statusText=attempt>1?'Checking... (attempt '+attempt+'/12)':'Prices are being fetched. Check back shortly.';
+  var statusText=attempt>1?'Checking... (attempt '+attempt+')':'Prices are being fetched. Check back shortly.';
   el.innerHTML='<div style="text-align:center;padding:40px 24px"><div style="font-size:36px;margin-bottom:12px">\ud83d\udd56</div><div style="font-size:15px;font-weight:600;color:#1a1a2e">Tracking started</div><div style="font-size:13px;color:#64668b;margin-top:8px">'+statusText+'</div><div style="width:100%;height:2px;background:#e2e4ea;border-radius:2px;margin-top:16px;overflow:hidden;position:relative"><div style="position:absolute;left:0;top:0;height:100%;width:'+Math.min(attempt*8,100)+'%;background:linear-gradient(90deg,#7c5cfc,#6366f1);border-radius:2px;transition:width 0.5s ease"></div></div></div>';
 }
 function renderFound(data){cachedData=data;renderProductCard(data);renderCompareSection(data);renderInsightsSection(data);renderChartSection(data);renderAlertSection(data);}
