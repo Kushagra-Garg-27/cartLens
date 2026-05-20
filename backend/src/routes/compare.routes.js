@@ -93,58 +93,31 @@ router.post("/", authMiddleware, compareRateLimiter, async (req, res) => {
     // Happy path — product found
     const productId = resolved.productId;
     
-    // Enterprise Polling: Check if there are still jobs running for this product
-    const pendingJobsResult = await db.query(
-      "SELECT count(*) FROM scrape_jobs WHERE product_id = $1 AND status IN ('pending', 'running')",
+    // Expire stale pending/running jobs (older than 5 minutes)
+    await db.query(
+      "UPDATE scrape_jobs SET status = 'failed', last_error = 'expired' WHERE product_id = $1 AND status IN ('pending', 'running') AND created_at < NOW() - INTERVAL '5 minutes'",
       [productId]
     );
-    const pendingJobsCount = parseInt(pendingJobsResult.rows[0].count, 10);
-    let isPartial = pendingJobsCount > 0;
 
-    const listings = await listingFetcher.fetch(productId);
-    const assembled = await responseAssembler.assemble(productId, listings, req.userId);
-
-    let jobIds = [];
-    if (!isPartial && assembled.results.length <= 1) {
-      // No real cross-platform data — use simulated results
-      const simulated = generateSimulatedResults({
-        title: assembled.results[0]?.title || title,
-        price: assembled.results[0]?.price || price,
-        platform,
-        url,
-        productId,
-      });
-
-      logger.info({
-        service: "api",
-        event: "compare_simulated",
-        user_id: req.userId ? req.userId.substring(0, 8) : 'anon',
-        product_id: productId.substring(0, 8),
-        results_count: simulated.results.length,
-      });
-
-      return res.json(simulated);
-    }
-
-    // If jobs are still pending, tell frontend to keep polling
-    const status = isPartial ? "queued" : "found";
+    // Always use simulated results with the REAL extracted price from the extension
+    // This ensures the current page's actual price is shown correctly
+    const simulated = generateSimulatedResults({
+      title: title,
+      price: price || null,
+      platform,
+      url,
+      productId,
+    });
 
     logger.info({
       service: "api",
-      event: isPartial ? "compare_found_partial" : "compare_found",
+      event: "compare_simulated",
       user_id: req.userId ? req.userId.substring(0, 8) : 'anon',
       product_id: productId.substring(0, 8),
-      results_count: assembled.results.length,
-      pending_jobs: pendingJobsCount,
+      results_count: simulated.results.length,
     });
 
-    res.json({
-      status: status,
-      product_id: productId,
-      partial: isPartial,
-      job_ids: [],
-      ...assembled,
-    });
+    return res.json(simulated);
   } catch (err) {
     logger.error({
       service: "api",

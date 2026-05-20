@@ -332,7 +332,7 @@ function setQueued(retryNum){
   var statusText=attempt>1?'Checking... (attempt '+attempt+')':'Prices are being fetched. Check back shortly.';
   el.innerHTML='<div style="text-align:center;padding:40px 24px"><div style="font-size:36px;margin-bottom:12px">\ud83d\udd56</div><div style="font-size:15px;font-weight:600;color:#1a1a2e">Tracking started</div><div style="font-size:13px;color:#64668b;margin-top:8px">'+statusText+'</div><div style="width:100%;height:2px;background:#e2e4ea;border-radius:2px;margin-top:16px;overflow:hidden;position:relative"><div style="position:absolute;left:0;top:0;height:100%;width:'+Math.min(attempt*8,100)+'%;background:linear-gradient(90deg,#7c5cfc,#6366f1);border-radius:2px;transition:width 0.5s ease"></div></div></div>';
 }
-function renderFound(data){cachedData=data;renderProductCard(data);renderCompareSection(data);renderInsightsSection(data);renderChartSection(data);renderAlertSection(data);}
+function renderFound(data){cachedData=data;renderProductCard(data);renderCompareSection(data);renderInsightsSection(data);renderAlternativesSection(data);renderChartSection(data);renderAlertSection(data);}
 
 function renderProductCard(d){
   var el=document.getElementById('scp-product-area');if(!el)return;
@@ -365,7 +365,18 @@ function renderProductCard(d){
 
 function renderCompareSection(d){
   var el=document.getElementById('scp-main-content');if(!el)return;
-  var results=d.results||[];var ps=d.price_stats||{};var currPrice=results[0]?results[0].price:0;
+  var results=d.results||[];var ps=d.price_stats||{};
+  
+  var currPlatform=detectPlatform();var currPrice=0;
+  if(results){
+    for(var ci=0;ci<results.length;ci++){
+      if(results[ci].match_confidence>=1||(currPlatform&&results[ci].platform&&results[ci].platform.indexOf(currPlatform.split('.')[0])>=0)){
+        currPrice=results[ci].price;break;
+      }
+    }
+  }
+  if(!currPrice&&results[0])currPrice=results[0].price;
+
   var h='<div class="sc-section"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">1.</span><span class="sc-section-title">Compare across websites</span></div><span class="sc-result-count">'+results.length+' results</span></div><div class="sc-compare-list">';
   var prices=results.filter(function(r){return r.price}).map(function(r){return r.price});
   var best=prices.length>0?Math.min.apply(null,prices):0;
@@ -413,11 +424,24 @@ function renderInsightsSection(d){
   el.innerHTML+='<div class="sc-section" style="animation-delay:0.2s"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">2.</span><span class="sc-section-title">Price intelligence</span></div></div><div class="sc-insights-grid"><div class="sc-insight-card high"><div class="sc-insight-icon">\ud83d\udcc8</div><div class="sc-insight-label">Highest</div><div class="sc-insight-value">'+fmtINR(ps.all_time_high)+'</div></div><div class="sc-insight-card low"><div class="sc-insight-icon">\ud83d\udcc9</div><div class="sc-insight-label">Lowest</div><div class="sc-insight-value">'+fmtINR(ps.all_time_low)+'</div></div><div class="sc-insight-card current"><div class="sc-insight-icon">\ud83d\udcca</div><div class="sc-insight-label">Current</div><div class="sc-insight-value">'+fmtINR(cp)+'</div></div><div class="sc-insight-card avg"><div class="sc-insight-icon">\ud83d\udccb</div><div class="sc-insight-label">Average</div><div class="sc-insight-value">'+fmtINR(avg)+'</div></div></div>'+posHtml+'<div class="sc-ai-rec '+recClass+'"><span class="sc-ai-rec-icon">'+(br.score>=50?'\ud83d\ude80':'\u23f3')+'</span><span class="sc-ai-rec-text">'+recText+'</span></div></div>';
 }
 
+function renderAlternativesSection(d){
+  var el=document.getElementById('scp-main-content');if(!el)return;
+  var alts=d.alternatives||[];
+  if(alts.length===0)return;
+  var h='<div class="sc-section" style="animation-delay:0.25s"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">3.</span><span class="sc-section-title">AI Recommendations</span></div></div><div class="sc-alts-list">';
+  for(var i=0;i<alts.length;i++){
+    var a=alts[i];
+    h+='<div class="sc-alt-card"><div class="sc-alt-info"><div class="sc-alt-name">'+a.name+'</div><div class="sc-alt-reason">\u2728 '+a.reason+'</div></div><div class="sc-alt-price">'+fmtINR(a.price)+'</div></div>';
+  }
+  h+='</div></div>';
+  el.innerHTML+=h;
+}
+
 function renderChartSection(d){
   var el=document.getElementById('scp-main-content');if(!el)return;
   var history=d.price_history||[];
   if(history.length===0)return;
-  el.innerHTML+='<div class="sc-chart-section" style="animation-delay:0.3s"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">3.</span><span class="sc-section-title">Price history</span></div></div><div class="sc-chart-card"><div class="sc-chart-filters"><button class="sc-chart-pill" data-range="30">1M</button><button class="sc-chart-pill" data-range="90">3M</button><button class="sc-chart-pill" data-range="180">6M</button><button class="sc-chart-pill active" data-range="0">All</button></div><div class="sc-chart-area"><canvas id="scp-chart"></canvas></div></div></div>';
+  el.innerHTML+='<div class="sc-chart-section" style="animation-delay:0.3s"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">4.</span><span class="sc-section-title">Price history</span></div></div><div class="sc-chart-card"><div class="sc-chart-filters"><button class="sc-chart-pill" data-range="30">1M</button><button class="sc-chart-pill" data-range="90">3M</button><button class="sc-chart-pill" data-range="180">6M</button><button class="sc-chart-pill active" data-range="0">All</button></div><div class="sc-chart-area"><canvas id="scp-chart"></canvas></div></div></div>';
   document.querySelectorAll('.sc-chart-pill').forEach(function(btn){
     btn.addEventListener('click',function(){
       document.querySelectorAll('.sc-chart-pill').forEach(function(b){b.classList.remove('active')});
@@ -429,8 +453,17 @@ function renderChartSection(d){
 
 function renderAlertSection(d){
   var el=document.getElementById('scp-main-content');if(!el)return;
-  var cp=d.results&&d.results[0]?d.results[0].price:'';
-  el.innerHTML+='<div class="sc-section" style="animation-delay:0.4s"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">4.</span><span class="sc-section-title">Smart alerts</span></div></div><div class="sc-alerts-card"><div class="sc-alert-row"><input class="sc-alert-input" id="scp-alert-price" type="number" value="'+cp+'" placeholder="Target price"><button class="sc-alert-btn" id="scp-watchlist-btn" data-pid="'+(d.product_id||'')+'">Set Alert</button></div></div></div><div style="height:24px"></div>';
+  var currPlatform=detectPlatform();var cp='';
+  if(d.results){
+    for(var ci=0;ci<d.results.length;ci++){
+      if(d.results[ci].match_confidence>=1||(currPlatform&&d.results[ci].platform&&d.results[ci].platform.indexOf(currPlatform.split('.')[0])>=0)){
+        cp=d.results[ci].price;break;
+      }
+    }
+  }
+  if(!cp&&d.results&&d.results[0])cp=d.results[0].price;
+  
+  el.innerHTML+='<div class="sc-section" style="animation-delay:0.4s"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">5.</span><span class="sc-section-title">Smart alerts</span></div></div><div class="sc-alerts-card"><div class="sc-alert-row"><input class="sc-alert-input" id="scp-alert-price" type="number" value="'+cp+'" placeholder="Target price"><button class="sc-alert-btn" id="scp-watchlist-btn" data-pid="'+(d.product_id||'')+'">Set Alert</button></div></div></div><div style="height:24px"></div>';
   setupWatchlistBtn(d);
 }
 
