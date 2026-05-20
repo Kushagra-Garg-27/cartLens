@@ -336,9 +336,31 @@ function renderFound(data){cachedData=data;renderProductCard(data);renderCompare
 
 function renderProductCard(d){
   var el=document.getElementById('scp-product-area');if(!el)return;
-  var title=d.results&&d.results[0]?d.results[0].title:d.product_title||'Product';
-  var price=d.results&&d.results[0]?d.results[0].price:null;
-  el.innerHTML='<div class="sc-product-card"><div class="sc-product-img"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div><div class="sc-product-info"><div class="sc-product-name">'+title+'</div><div class="sc-product-category">'+(d.results&&d.results[0]?d.results[0].platform:'')+'</div>'+(price?'<div style="font-size:16px;font-weight:700;color:#7c5cfc;margin-top:4px">'+fmtINR(price)+'</div>':'')+'<div class="sc-ai-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> AI Verified</div></div></div>';
+  // Find the current platform's listing (match_confidence=1 or source platform)
+  var currPlatform=detectPlatform();
+  var currentListing=null;
+  if(d.results){
+    for(var ci=0;ci<d.results.length;ci++){
+      if(d.results[ci].match_confidence>=1||(currPlatform&&d.results[ci].platform&&d.results[ci].platform.indexOf(currPlatform.split('.')[0])>=0)){
+        currentListing=d.results[ci];break;
+      }
+    }
+  }
+  if(!currentListing&&d.results&&d.results.length>0)currentListing=d.results[0];
+  var title=d.product_title||(currentListing?currentListing.title:null)||'Product';
+  var price=currentListing?currentListing.price:null;
+  var platName=currentListing?currentListing.platform:(currPlatform||'');
+  // Match method badge
+  var conf=currentListing?currentListing.match_confidence:null;
+  var method=currentListing?currentListing.match_method:null;
+  var badgeText='Verified';
+  if(conf>=1||method==='extension')badgeText='Exact Match';
+  else if(method==='deterministic'||method==='asin')badgeText='Exact Match';
+  else if(method==='nlp_high')badgeText='Strong Match';
+  else if(method==='nlp_likely'||method==='title_match')badgeText='Likely Match';
+  else if(method==='image_hash')badgeText='Visual Match';
+  else if(method==='url_cache')badgeText='Cached';
+  el.innerHTML='<div class="sc-product-card"><div class="sc-product-img"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div><div class="sc-product-info"><div class="sc-product-name">'+title+'</div><div class="sc-product-category">'+platName+'</div>'+(price?'<div style="font-size:16px;font-weight:700;color:#7c5cfc;margin-top:4px">'+fmtINR(price)+'</div>':'')+'<div class="sc-ai-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> '+badgeText+'</div></div></div>';
 }
 
 function renderCompareSection(d){
@@ -372,7 +394,17 @@ function renderCompareSection(d){
 }
 function renderInsightsSection(d){
   var el=document.getElementById('scp-main-content');if(!el)return;
-  var ps=d.price_stats||{};var br=d.buy_recommendation||{};var cp=d.results&&d.results[0]?d.results[0].price:0;
+  var ps=d.price_stats||{};var br=d.buy_recommendation||{};
+  // CURRENT = current page's price (match_confidence=1), not cheapest
+  var currPlatform=detectPlatform();var cp=0;
+  if(d.results){
+    for(var ci=0;ci<d.results.length;ci++){
+      if(d.results[ci].match_confidence>=1||(currPlatform&&d.results[ci].platform&&d.results[ci].platform.indexOf(currPlatform.split('.')[0])>=0)){
+        cp=d.results[ci].price;break;
+      }
+    }
+  }
+  if(!cp&&d.results&&d.results[0])cp=d.results[0].price;
   var recClass=br.score>=50?'buy':'wait';
   var recText=br.label||'Analyzing...';
   var avg=ps.avg_price_90d||0;

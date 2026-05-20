@@ -9,12 +9,11 @@ const PLATFORM_INFO = {
   "flipkart.com": { label: "Flipkart", searchUrl: "https://www.flipkart.com/search?q=" },
   "croma": { label: "Croma", searchUrl: "https://www.croma.com/searchB?q=" },
   "reliancedigital": { label: "Reliance Digital", searchUrl: "https://www.reliancedigital.in/search?q=" },
-  "vijaysales": { label: "Vijay Sales", searchUrl: "https://www.vijaysales.com/search/" },
   "tatacliq": { label: "TataCliq", searchUrl: "https://www.tatacliq.com/search/?searchCategory=all&text=" },
 };
 
 // Electronics-category platforms to simulate for phones/laptops/electronics
-const ELECTRONICS_PLATFORMS = ["amazon.in", "flipkart.com", "croma", "reliancedigital", "vijaysales"];
+const ELECTRONICS_PLATFORMS = ["amazon.in", "flipkart.com", "croma", "reliancedigital", "tatacliq"];
 
 /**
  * Generate a seeded pseudo-random number from a string.
@@ -59,9 +58,10 @@ function generateSimulatedResults({ title, price, platform, url, productId }) {
   const results = [];
   const now = new Date().toISOString();
   
-  // Source listing (the page user is on)
+  // Source listing (the page user is on) — always match_confidence=1
   results.push({
     platform: platform,
+    title: title || "Product",
     price: basePrice,
     currency: "INR",
     availability: "in_stock",
@@ -91,6 +91,7 @@ function generateSimulatedResults({ title, price, platform, url, productId }) {
     
     results.push({
       platform: plat,
+      title: title || "Product",
       price: simPrice,
       currency: "INR",
       availability: seededRandom(seed, idx + 30) > 0.15 ? "in_stock" : "out_of_stock",
@@ -193,6 +194,7 @@ function generateSimulatedResults({ title, price, platform, url, productId }) {
   return {
     status: "found",
     product_id: productId,
+    product_title: title || "Product",
     partial: false,
     job_ids: [],
     results,
