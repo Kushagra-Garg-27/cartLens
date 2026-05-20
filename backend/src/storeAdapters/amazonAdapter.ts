@@ -4,18 +4,24 @@
 
 import * as cheerio from "cheerio";
 import { BaseStoreAdapter, type StoreListing, type AdapterSearchOptions } from "./baseAdapter.js";
+import {
+  AMAZON_BASE_URL,
+  AMAZON_CURRENCY,
+  buildAmazonIndiaProductUrl,
+  buildAmazonIndiaSearchUrl,
+} from "../constants/amazon.js";
 
 export class AmazonAdapter extends BaseStoreAdapter {
   readonly storeId = "amazon";
   readonly storeName = "Amazon";
-  readonly baseUrl = "https://www.amazon.com";
-  readonly currency = "USD";
+  readonly baseUrl = AMAZON_BASE_URL;
+  readonly currency = AMAZON_CURRENCY;
   readonly trustScore = 96;
-  readonly defaultDeliveryInfo = "Free delivery on orders over $35";
-  readonly defaultReturnPolicy = "30-day return policy";
+  readonly defaultDeliveryInfo = "Free delivery on orders over ₹499";
+  readonly defaultReturnPolicy = "10-day replacement";
 
   buildSearchUrl(query: string): string {
-    return `${this.baseUrl}/s?k=${encodeURIComponent(query)}`;
+    return buildAmazonIndiaSearchUrl(query);
   }
 
   async searchProducts(query: string, options?: AdapterSearchOptions): Promise<StoreListing[]> {
@@ -25,16 +31,6 @@ export class AmazonAdapter extends BaseStoreAdapter {
     try {
       const html = await this.fetchHtml(this.buildSearchUrl(query));
       const $ = cheerio.load(html);
-
-      // Detect page currency from first price found
-      let detectedCurrency = this.currency;
-      const firstPrice = $(".a-price .a-offscreen").first().text().trim();
-      if (firstPrice) {
-        if (firstPrice.includes("₹") || firstPrice.startsWith("INR")) detectedCurrency = "INR";
-        else if (firstPrice.includes("€")) detectedCurrency = "EUR";
-        else if (firstPrice.includes("£")) detectedCurrency = "GBP";
-        else if (firstPrice.includes("¥")) detectedCurrency = "JPY";
-      }
 
       $("[data-component-type='s-search-result']").each((_i, el) => {
         if (listings.length >= limit) return false;
@@ -74,9 +70,10 @@ export class AmazonAdapter extends BaseStoreAdapter {
         const price = this.parsePrice(priceText);
         if (!link || !price) return;
 
-        const url = link.startsWith("http") ? link : `${this.baseUrl}${link}`;
+        // Canonical India PDP URL (no cross-region links)
+        const url = buildAmazonIndiaProductUrl(asin);
         const listing = this.createBaseListing(title, price, url);
-        listing.currency = detectedCurrency;
+        listing.currency = AMAZON_CURRENCY;
         listing.externalId = asin;
         listing.image = image;
         listing.originalPrice = this.parsePrice(originalPriceText);

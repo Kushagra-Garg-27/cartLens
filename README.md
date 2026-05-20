@@ -1,58 +1,117 @@
-# SmartComparison-Tool
+# SmartCompare Pro
 
-Real-time product comparison, price tracking, and deal detection platform.
+Real-time price comparison across Indian e-commerce platforms — Amazon.in, Flipkart, Myntra, Croma, and Ajio.
 
 ## Architecture
 
-The project has **three independent layers**, all communicating through the shared backend API:
+- **Backend**: Node.js monolith (Express) — API, cron jobs, and scraping in a single process
+- **Database**: PostgreSQL 15 (Neon.tech for production, Docker for local dev)
+- **Extension**: Chrome Manifest V3 — content scripts extract product data, popup handles auth
+- **Scraping**: Playwright + stealth (Amazon, Flipkart, Myntra, Ajio) + Cheerio (Croma)
+- **Job Queue**: PostgreSQL-based with `FOR UPDATE SKIP LOCKED` — no Redis needed
+- **Email**: Resend.com for watchlist price alerts
+- **Auth**: JWT (jsonwebtoken)
 
-```
-SmartComparison-Tool/
-├── backend/              # Fastify API server (shared by both clients)
-├── web-app/              # SmartCompare Pro web application (React + Vite)
-└── chrome-extension/     # Chrome Extension client (Manifest V3)
-```
+## Quick Start (Local Development)
 
-### Backend (`backend/`)
-Fastify server providing REST APIs for product identification, price comparison, deal discovery, watchlists, notifications, and AI chat. Runs at `http://localhost:3001`.
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 20+
+- Google Chrome (for extension)
 
-### Web App (`web-app/`)
-Full-featured React web application (formerly SmartCompare-Pro). Provides dashboard, search, deals, watchlist, pricing pages. Communicates with the backend via `/api/*` proxy.
-
-### Chrome Extension (`chrome-extension/`)
-Chrome Manifest V3 extension that detects products on e-commerce pages (Amazon, eBay, Walmart, Best Buy, Flipkart), extracts product info, and renders price comparison in a popup/side panel. Communicates with the same backend API.
-
-## Quick Start
-
-**Prerequisites:** Node.js 18+
+### 1. Start the backend + database
 
 ```bash
-# Install all dependencies
-npm run install:all
-
-# Start backend (terminal 1)
-npm run dev:backend
-
-# Start web app (terminal 2)
-npm run dev:web-app
-
-# Build extension (terminal 3)
-npm run build:extension
-# Then load chrome-extension/dist/ as unpacked extension in Chrome
+docker-compose up --build
 ```
 
-## Scripts
+This will:
+- Start PostgreSQL 15 and auto-run the migration (`001_initial_schema.sql`)
+- Build and start the Express backend on port 3000
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev:backend` | Start backend server |
-| `npm run dev:web-app` | Start web app dev server |
-| `npm run dev:extension` | Build extension in watch mode |
-| `npm run build:web-app` | Production build of web app |
-| `npm run build:extension` | Production build of extension |
-| `npm run install:all` | Install deps for all three layers |
+### 2. Seed sample data (optional)
+
+```bash
+cd backend
+npm install
+node scripts/seed.js
+```
+
+### 3. Verify the backend
+
+```bash
+curl http://localhost:3000/api/health
+# → { "status": "ok", "db": "connected", "timestamp": "..." }
+```
+
+### 4. Load the extension
+
+1. Open Chrome → `chrome://extensions`
+2. Enable "Developer mode" (top right)
+3. Click "Load unpacked"
+4. Select the `extension/` directory
+5. Click the extension icon → Register/Login
+6. Visit a supported product page (Amazon.in, Flipkart, etc.)
+
+## Project Structure
+
+```
+├── backend/
+│   ├── src/
+│   │   ├── index.js          # Express entry + cron
+│   │   ├── config.js         # Env validation
+│   │   ├── db.js             # PostgreSQL pool
+│   │   ├── auth.js           # JWT + bcrypt
+│   │   ├── routes/           # API endpoints
+│   │   ├── services/         # Business logic
+│   │   ├── scrapers/         # Platform scrapers
+│   │   ├── cron/             # Background jobs
+│   │   ├── middleware/       # Auth, rate limit, logging
+│   │   └── utils/            # Text matching, formatting
+│   ├── migrations/           # SQL schema
+│   ├── scripts/              # Seed data
+│   └── tests/                # Jest tests
+├── extension/
+│   ├── manifest.json         # Manifest V3
+│   ├── background.js         # Service worker
+│   ├── content.js            # Product extraction + panel
+│   ├── popup.html/js/css     # Auth UI
+│   └── icons/
+└── docker-compose.yml
+```
+
+## API Endpoints
+
+| Endpoint | Auth | Description |
+|---|---|---|
+| `POST /api/auth/register` | Public | Create account |
+| `POST /api/auth/login` | Public | Login (rate-limited) |
+| `POST /api/compare` | Required | Submit product for comparison |
+| `GET /api/results/:job_id` | Required | Poll scrape job status |
+| `GET /api/history/:product_id` | Required | Price history by platform |
+| `POST /api/watchlist` | Required | Add to watchlist |
+| `GET /api/watchlist` | Required | List watchlist |
+| `DELETE /api/watchlist/:product_id` | Required | Remove from watchlist |
+| `GET /api/health` | Public | Health check |
+
+## Running Tests
+
+```bash
+cd backend
+npm test
+```
 
 ## Environment Variables
 
-See `backend/.env.example` for backend configuration.
-See `web-app/.env` for web app configuration.
+Copy `backend/.env.example` to `backend/.env` and configure:
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | Min 32 chars |
+| `RESEND_API_KEY` | No | For email alerts |
+| `PORT` | No | Default: 3000 |
+
+## License
+
+MIT

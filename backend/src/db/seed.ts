@@ -7,6 +7,7 @@
  */
 import { MemoryStore } from "../store/memoryStore.js";
 import { DatabaseStore } from "../store/databaseStore.js";
+import { AMAZON_BASE_URL, AMAZON_CURRENCY } from "../constants/amazon.js";
 
 /**
  * Populates the in-memory store with structured placeholder data (synchronous).
@@ -16,7 +17,7 @@ export function seedMemoryStore(store: MemoryStore): void {
   const sellers = [
     {
       id: "seller-amazon",
-      name: "Amazon.com",
+      name: "Amazon.in",
       platform: "Amazon",
       trustScore: 96,
     },
@@ -79,8 +80,7 @@ export function seedMemoryStore(store: MemoryStore): void {
         "Sony WH-1000XM5 Wireless Noise Cancelling Headphones Black",
       category: "Electronics",
       subcategory: "Headphones",
-      image:
-        "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
+      image: null,
       specs: {
         type: "Over-ear",
         noiseCancelling: true,
@@ -96,8 +96,7 @@ export function seedMemoryStore(store: MemoryStore): void {
         "Samsung Galaxy S24 Ultra 256GB Titanium Black Unlocked",
       category: "Electronics",
       subcategory: "Smartphones",
-      image:
-        "https://m.media-amazon.com/images/I/71lSoRKJxHL._AC_SL1500_.jpg",
+      image: null,
       specs: {
         processor: "Snapdragon 8 Gen 3",
         ram: "12GB",
@@ -112,8 +111,7 @@ export function seedMemoryStore(store: MemoryStore): void {
       canonicalTitle: "Dyson V15 Detect Absolute Cordless Vacuum Cleaner",
       category: "Home",
       subcategory: "Vacuums",
-      image:
-        "https://m.media-amazon.com/images/I/61n1IxPGdzL._AC_SL1500_.jpg",
+      image: null,
       specs: {
         type: "Cordless Stick",
         batteryLife: "60 minutes",
@@ -166,22 +164,28 @@ export function seedMemoryStore(store: MemoryStore): void {
     for (const pl of platformListings) {
       const price = +(basePrice * pl.priceMultiplier).toFixed(2);
       const originalPrice = +(price * 1.15).toFixed(2);
+      const isAmazon = pl.platform === "Amazon";
+      const currency = isAmazon ? AMAZON_CURRENCY : "USD";
       const listing = store.createListing({
         productId: product.id,
         platform: pl.platform,
         externalId: `${pl.platform.toLowerCase()}-${product.id.slice(0, 8)}`,
-        url: `https://${pl.platform.toLowerCase()}.com/dp/${product.id.slice(0, 8)}`,
+        url: isAmazon
+          ? `${AMAZON_BASE_URL}/dp/${product.id.slice(0, 8)}`
+          : `https://${pl.platform.toLowerCase()}.com/dp/${product.id.slice(0, 8)}`,
         title: product.canonicalTitle,
         sellerId: pl.sellerId,
         lastPrice: price,
-        currency: "USD",
+        currency,
         originalPrice,
-        affiliateUrl: `https://affiliate.${pl.platform.toLowerCase()}.com/track?id=${product.id.slice(0, 8)}`,
+        affiliateUrl: isAmazon
+          ? null
+          : `https://affiliate.${pl.platform.toLowerCase()}.com/track?id=${product.id.slice(0, 8)}`,
         affiliateNetwork: pl.platform === "Amazon" ? "Amazon Associates" : null,
       });
 
       // Generate synthetic price history
-      store.generateSyntheticHistory(listing.id, price, "USD", 90);
+      store.generateSyntheticHistory(listing.id, price, currency, 90);
     }
   }
 
@@ -336,7 +340,7 @@ export function seedMemoryStore(store: MemoryStore): void {
 export async function seedDatabaseStore(store: DatabaseStore): Promise<void> {
   // --- Sellers (no hardcoded IDs — let PostgreSQL generate UUIDs) ---
   const sellerDefs = [
-    { name: "Amazon.com", platform: "Amazon", trustScore: 96 },
+    { name: "Amazon.in", platform: "Amazon", trustScore: 96 },
     { name: "Best Buy", platform: "BestBuy", trustScore: 94 },
     { name: "Walmart.com", platform: "Walmart", trustScore: 92 },
     { name: "TopRatedSeller", platform: "eBay", trustScore: 88 },
@@ -362,21 +366,21 @@ export async function seedDatabaseStore(store: DatabaseStore): Promise<void> {
       brand: "Sony", model: "WH-1000XM5", gtin: "027242923782",
       canonicalTitle: "Sony WH-1000XM5 Wireless Noise Cancelling Headphones Black",
       category: "Electronics", subcategory: "Headphones",
-      image: "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
+      image: null,
       specs: { type: "Over-ear", noiseCancelling: true, batteryLife: "30 hours", connectivity: "Bluetooth 5.2" },
     },
     {
       brand: "Samsung", model: "Galaxy S24 Ultra", gtin: "887276789200",
       canonicalTitle: "Samsung Galaxy S24 Ultra 256GB Titanium Black Unlocked",
       category: "Electronics", subcategory: "Smartphones",
-      image: "https://m.media-amazon.com/images/I/71lSoRKJxHL._AC_SL1500_.jpg",
+      image: null,
       specs: { processor: "Snapdragon 8 Gen 3", ram: "12GB", storage: "256GB", display: '6.8" QHD+ Dynamic AMOLED' },
     },
     {
       brand: "Dyson", model: "V15 Detect", gtin: "885609024608",
       canonicalTitle: "Dyson V15 Detect Absolute Cordless Vacuum Cleaner",
       category: "Home", subcategory: "Vacuums",
-      image: "https://m.media-amazon.com/images/I/61n1IxPGdzL._AC_SL1500_.jpg",
+      image: null,
       specs: { type: "Cordless Stick", batteryLife: "60 minutes", suction: "230 AW", weight: "6.8 lbs" },
     },
     {
@@ -411,21 +415,27 @@ export async function seedDatabaseStore(store: DatabaseStore): Promise<void> {
     for (const pl of platformListings) {
       const price = +(basePrice * pl.priceMultiplier).toFixed(2);
       const originalPrice = +(price * 1.15).toFixed(2);
+      const isAmazon = pl.platform === "Amazon";
+      const currency = isAmazon ? AMAZON_CURRENCY : "USD";
       const listing = await store.createListing({
         productId: product.id,
         platform: pl.platform,
         externalId: `${pl.platform.toLowerCase()}-${product.id.slice(0, 8)}`,
-        url: `https://${pl.platform.toLowerCase()}.com/dp/${product.id.slice(0, 8)}`,
+        url: pl.platform === "Amazon"
+          ? `${AMAZON_BASE_URL}/dp/${product.id.slice(0, 8)}`
+          : `https://${pl.platform.toLowerCase()}.com/dp/${product.id.slice(0, 8)}`,
         title: product.canonicalTitle,
         sellerId: sellerMap.get(pl.platform) || null,
         lastPrice: price,
-        currency: "USD",
+        currency,
         originalPrice,
-        affiliateUrl: `https://affiliate.${pl.platform.toLowerCase()}.com/track?id=${product.id.slice(0, 8)}`,
+        affiliateUrl: isAmazon
+          ? null
+          : `https://affiliate.${pl.platform.toLowerCase()}.com/track?id=${product.id.slice(0, 8)}`,
         affiliateNetwork: pl.platform === "Amazon" ? "Amazon Associates" : null,
       });
 
-      await store.generateSyntheticHistory(listing.id, price, "USD", 90);
+      await store.generateSyntheticHistory(listing.id, price, currency, 90);
     }
   }
 

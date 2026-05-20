@@ -1,0 +1,149 @@
+/* SmartCompare Pro — Panel Sidebar Styles */
+#scp-panel{position:fixed;top:0;right:0;width:380px;height:100vh;background:#0f1117;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;z-index:2147483647;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-4px 0 24px rgba(0,0,0,.5);overflow:hidden}
+#scp-panel.scp-open{transform:translateX(0)}
+#scp-panel *{box-sizing:border-box;margin:0;padding:0}
+
+/* Header */
+.scp-header{background:linear-gradient(135deg,#1a1a2e,#16213e);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #2d3748}
+.scp-header-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:#fff}
+.scp-header-title .scp-icon{font-size:18px}
+.scp-close{background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px;line-height:1}
+.scp-close:hover{color:#fff;background:rgba(255,255,255,.1)}
+
+/* Tabs */
+.scp-tabs{display:flex;border-bottom:1px solid #2d3748;flex-shrink:0;background:#0f1117}
+.scp-tab{flex:1;padding:10px 0;text-align:center;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .2s}
+.scp-tab.active{color:#fff;border-bottom-color:#6366f1}
+.scp-tab:hover:not(.active){color:#94a3b8}
+
+/* Scrollable Content */
+.scp-content{flex:1;overflow-y:auto;padding:16px;scrollbar-width:thin;scrollbar-color:#6366f1 #2d3748}
+.scp-content::-webkit-scrollbar{width:4px}
+.scp-content::-webkit-scrollbar-track{background:#2d3748}
+.scp-content::-webkit-scrollbar-thumb{background:#6366f1;border-radius:2px}
+.scp-tab-panel{display:none}
+.scp-tab-panel.active{display:block}
+
+/* Cards */
+.scp-card{background:#1e2130;border:1px solid #2d3748;border-radius:8px;padding:14px;margin-bottom:12px}
+
+/* Gauge */
+.scp-gauge-wrap{text-align:center;margin-bottom:12px}
+.scp-gauge-wrap svg{width:180px;height:110px}
+.scp-gauge-score{font-size:32px;font-weight:800;color:#fff;margin-top:-8px}
+.scp-gauge-label{font-size:12px;color:#94a3b8;margin-top:2px}
+
+/* Badge */
+.scp-badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:13px;font-weight:700;text-align:center;margin-bottom:12px}
+.scp-badge.epic{border:2px solid #10b981;color:#10b981;background:rgba(16,185,129,.1)}
+.scp-badge.good{border:2px solid #10b981;color:#10b981;background:rgba(16,185,129,.08)}
+.scp-badge.fair{border:2px solid #f59e0b;color:#f59e0b;background:rgba(245,158,11,.08)}
+.scp-badge.bad{border:2px solid #ef4444;color:#ef4444;background:rgba(239,68,68,.08)}
+
+/* Context Tag */
+.scp-context{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1e2130;border:1px solid #2d3748;border-radius:8px;margin-bottom:12px}
+.scp-context-icon{font-size:20px;flex-shrink:0}
+.scp-context-label{font-size:13px;font-weight:600;color:#e2e8f0}
+.scp-context-detail{font-size:11px;color:#94a3b8}
+
+/* Score Breakup */
+.scp-breakup{list-style:none;margin-bottom:12px}
+.scp-breakup li{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;color:#94a3b8;border-bottom:1px solid #1a1d2e}
+.scp-breakup li:last-child{border-bottom:none}
+.scp-bp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.scp-bp-dot.earned{background:#10b981}
+.scp-bp-dot.missed{background:#ef4444;border-radius:50% 50% 0 0;clip-path:inset(0 0 50% 0);height:5px;width:10px}
+.scp-bp-pts{margin-left:auto;font-weight:700;color:#e2e8f0;font-size:11px}
+
+/* Platform Table */
+.scp-platforms{margin-bottom:12px}
+.scp-platform-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1e2130;border:1px solid #2d3748;border-radius:8px;margin-bottom:6px;position:relative;transition:background .15s}
+.scp-platform-row:hover{background:#252840}
+.scp-platform-row.best{border-left:3px solid #10b981}
+.scp-plat-badge{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;color:#fff;text-transform:uppercase;flex-shrink:0}
+.scp-plat-badge.amazon{background:#ff9900}
+.scp-plat-badge.flipkart{background:#2874f0}
+.scp-plat-badge.myntra{background:#ff3f6c}
+.scp-plat-badge.croma{background:#0f7c40}
+.scp-plat-badge.ajio{background:#1a1a1a}
+.scp-plat-info{flex:1;min-width:0}
+.scp-plat-price{font-size:16px;font-weight:700;color:#fff}
+.scp-plat-meta{font-size:10px;color:#64748b;margin-top:2px}
+.scp-plat-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.scp-plat-tag{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600}
+.scp-plat-tag.best-price{background:rgba(16,185,129,.15);color:#10b981}
+.scp-plat-tag.exact{background:rgba(99,102,241,.15);color:#818cf8}
+.scp-plat-tag.likely{background:rgba(245,158,11,.15);color:#f59e0b}
+.scp-plat-tag.in-stock{background:rgba(16,185,129,.1);color:#10b981}
+.scp-plat-tag.oos{background:rgba(239,68,68,.1);color:#ef4444}
+.scp-plat-save{font-size:11px;color:#10b981;font-weight:600;margin-top:2px}
+.scp-plat-buy{padding:4px 10px;border-radius:4px;border:1px solid #6366f1;color:#6366f1;background:none;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;flex-shrink:0;transition:all .15s}
+.scp-plat-buy:hover{background:#6366f1;color:#fff}
+
+/* Price Stats Grid */
+.scp-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.scp-stat{background:#1e2130;border:1px solid #2d3748;border-radius:8px;padding:10px;text-align:center}
+.scp-stat.sale{background:rgba(245,158,11,.08);border-color:#f59e0b}
+.scp-stat-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px}
+.scp-stat-value{font-size:16px;font-weight:700;color:#fff;margin-top:4px}
+.scp-stat-icon{font-size:14px}
+
+/* Timeframe Pills */
+.scp-timeframes{display:flex;gap:6px;margin-bottom:12px}
+.scp-tf-pill{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;color:#64748b;background:#1e2130;border:1px solid #2d3748;cursor:pointer;transition:all .15s}
+.scp-tf-pill.active{color:#fff;background:#6366f1;border-color:#6366f1}
+
+/* Chart */
+.scp-chart-wrap{background:#1e2130;border:1px solid #2d3748;border-radius:8px;padding:12px;margin-bottom:12px}
+.scp-chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.scp-chart-title{font-size:13px;font-weight:600;color:#e2e8f0}
+.scp-chart-ranges{display:flex;gap:4px}
+.scp-chart-range{padding:3px 8px;font-size:10px;border-radius:3px;color:#64748b;cursor:pointer;background:none;border:none;font-weight:600}
+.scp-chart-range.active{color:#6366f1;border-bottom:2px solid #6366f1}
+.scp-chart-canvas{width:100%!important;height:180px!important}
+
+/* Price Alert */
+.scp-alert-section{background:#1e2130;border:1px solid #2d3748;border-radius:8px;padding:14px;margin-bottom:12px}
+.scp-alert-title{font-size:13px;font-weight:600;color:#e2e8f0;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.scp-alert-row{display:flex;gap:8px;align-items:center}
+.scp-alert-input{flex:1;padding:8px 10px;background:#0f1117;border:1px solid #2d3748;border-radius:6px;color:#fff;font-size:14px;font-family:inherit}
+.scp-alert-input:focus{outline:none;border-color:#6366f1}
+.scp-alert-btn{padding:8px 14px;border-radius:6px;border:none;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.scp-alert-btn.set{background:#6366f1;color:#fff}
+.scp-alert-btn.set:hover{background:#4f46e5}
+.scp-alert-btn.watching{background:#10b981;color:#fff}
+.scp-alert-btn.login{background:#6366f1;color:#fff;width:100%}
+
+/* Loading State */
+.scp-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:#94a3b8}
+.scp-spinner{width:36px;height:36px;border:3px solid #2d3748;border-top-color:#6366f1;border-radius:50%;animation:scp-spin .8s linear infinite}
+@keyframes scp-spin{to{transform:rotate(360deg)}}
+
+/* Queued State */
+.scp-queued{text-align:center;padding:40px 20px;color:#94a3b8}
+.scp-queued-icon{font-size:40px;margin-bottom:12px}
+.scp-queued h3{color:#e2e8f0;margin-bottom:8px;font-size:16px}
+.scp-queued p{font-size:13px;line-height:1.5}
+.scp-pulse-bar{height:3px;background:#2d3748;border-radius:2px;margin-top:20px;overflow:hidden}
+.scp-pulse-bar::after{content:'';display:block;width:40%;height:100%;background:#6366f1;border-radius:2px;animation:scp-pulse 1.5s ease-in-out infinite}
+@keyframes scp-pulse{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+
+/* No Match / Error */
+.scp-empty{text-align:center;padding:40px 20px;color:#94a3b8}
+.scp-empty-icon{font-size:40px;margin-bottom:12px}
+.scp-empty h3{color:#e2e8f0;margin-bottom:8px;font-size:16px}
+.scp-empty p{font-size:13px;line-height:1.5}
+.scp-retry-btn{margin-top:16px;padding:8px 20px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.scp-retry-btn:hover{background:#4f46e5}
+
+/* Recommendation Label */
+.scp-rec-label{text-align:center;margin:8px 0}
+.scp-rec-label span{font-size:14px;font-weight:700}
+.scp-rec-label.great span{color:#10b981}
+.scp-rec-label.good span{color:#a3e635}
+.scp-rec-label.wait span{color:#f59e0b}
+.scp-rec-label.bad span{color:#ef4444}
+.scp-rec-reason{text-align:center;font-size:12px;color:#94a3b8;margin-bottom:12px}
+
+/* Section Headers */
+.scp-section-title{font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}

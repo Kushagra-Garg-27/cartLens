@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: smartcomparepro
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001.sql
+      - ./backend/migrations/002_add_product_id_to_scrape_jobs.sql:/docker-entrypoint-initdb.d/002.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev -d smartcomparepro"]
+      interval: 10s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://dev:devpassword@postgres:5432/smartcomparepro
+      JWT_SECRET: local-dev-secret-key-minimum-32-characters-long
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: development
+      PORT: 3000
+      BACKEND_URL: http://localhost:3000
+      RESEND_API_KEY: ""
+      RESEND_FROM_EMAIL: "alerts@localhost"
+      USER_AGENT_POOL: '["Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"]'
+      SCRAPER_MIN_DELAY_MS: "8000"
+      SCRAPER_MAX_DELAY_MS: "15000"
+      RATE_LIMIT_COMPARE: "30"
+      RATE_LIMIT_AUTH: "10"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: node src/index.js
+
+volumes:
+  postgres_data:

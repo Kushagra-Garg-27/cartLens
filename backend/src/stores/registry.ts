@@ -5,6 +5,8 @@
  * No core service code needs to change when adding a new store.
  */
 
+import { AMAZON_BASE_URL, AMAZON_DOMAIN } from "../constants/amazon.js";
+
 export interface StoreConfig {
   /** Unique store identifier (lowercase, no spaces) */
   id: string;
@@ -40,13 +42,13 @@ const STORES: StoreConfig[] = [
   {
     id: "amazon",
     displayName: "Amazon",
-    domains: ["amazon.in", "amazon.com", "amazon.co.uk"],
+    domains: [AMAZON_DOMAIN],
     trustScore: 96,
     currency: "INR",
     region: "IN",
     enabled: true,
     logo: "amazon",
-    searchUrlTemplate: "https://www.amazon.in/s?k={query}",
+    searchUrlTemplate: `${AMAZON_BASE_URL}/s?k={query}`,
     productUrlPatterns: [/\/dp\/[A-Z0-9]{10}/, /\/gp\/product\/[A-Z0-9]{10}/],
     deliveryInfo: "Free delivery on orders over ₹499",
     returnPolicy: "10-day replacement",

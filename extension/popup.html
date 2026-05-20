@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=360">
+  <title>SmartCompare Pro</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <h1>⚡ SmartCompare Pro</h1>
+      <p class="subtitle">Price comparison across Indian e-commerce</p>
+    </div>
+
+    <!-- Auth Section (shown when logged out) -->
+    <div id="auth-section" class="section">
+      <div class="tabs">
+        <button class="tab active" id="tab-login" data-tab="login">Login</button>
+        <button class="tab" id="tab-register" data-tab="register">Register</button>
+      </div>
+
+      <form id="login-form" class="form">
+        <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+        <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+        <button type="submit" class="btn-primary" id="login-btn">Sign In</button>
+      </form>
+
+      <form id="register-form" class="form hidden">
+        <input type="email" id="register-email" placeholder="Email" required autocomplete="email">
+        <input type="password" id="register-password" placeholder="Password (min 6 chars)" required minlength="6" autocomplete="new-password">
+        <button type="submit" class="btn-primary" id="register-btn">Create Account</button>
+      </form>
+
+      <p class="error-msg hidden" id="auth-error"></p>
+    </div>
+
+    <!-- User Section (shown when logged in) -->
+    <div id="user-section" class="section hidden">
+      <div class="user-info">
+        <span class="user-email" id="user-email"></span>
+        <button class="btn-secondary" id="logout-btn">Logout</button>
+      </div>
+      <button class="btn-primary" id="open-panel-btn" style="width:100%;margin:10px 0">⚡ Open Panel</button>
+      <div class="status-msg" id="status-msg">
+        <p>✅ Extension active. Visit a supported product page to compare prices.</p>
+      </div>
+      <div class="supported-sites">
+        <p class="label">Supported Sites</p>
+        <div class="site-badges">
+          <span class="badge">Amazon.in</span>
+          <span class="badge">Flipkart</span>
+          <span class="badge">Myntra</span>
+          <span class="badge">Croma</span>
+          <span class="badge">Ajio</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

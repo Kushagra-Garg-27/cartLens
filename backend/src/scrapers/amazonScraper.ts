@@ -1,5 +1,5 @@
 /**
- * Amazon Scraper — Extracts product data from Amazon India (.in) and global domains.
+ * Amazon Scraper — Extracts product data from Amazon India (amazon.in) only.
  */
 
 import * as cheerio from "cheerio";
@@ -11,20 +11,33 @@ import {
   safeFetch,
   createBaseResult,
 } from "./base.js";
+import {
+  AMAZON_CURRENCY,
+  buildAmazonIndiaProductUrl,
+  buildAmazonIndiaSearchUrl,
+  canonicalizeAmazonIndiaUrl,
+} from "../constants/amazon.js";
 
 export class AmazonScraper implements StoreScraper {
   readonly storeId = "amazon";
 
   async scrapeProduct(url: string): Promise<ScraperResult> {
-    const result = createBaseResult(this.storeId, url);
+    const canonicalUrl = canonicalizeAmazonIndiaUrl(url);
+    const result = createBaseResult(this.storeId, canonicalUrl ?? url);
+
+    if (!canonicalUrl) {
+      result.error = "Amazon India only: unable to canonicalize URL to amazon.in";
+      result.availability = false;
+      return result;
+    }
 
     try {
-      const html = await safeFetch(url);
+      const html = await safeFetch(canonicalUrl);
       const $ = cheerio.load(html);
 
       // Extract ASIN from URL
-      const asinMatch = url.match(/\/dp\/([A-Z0-9]{10})/i) ||
-        url.match(/\/gp\/product\/([A-Z0-9]{10})/i);
+      const asinMatch = canonicalUrl.match(/\/dp\/([A-Z0-9]{10})/i) ||
+        canonicalUrl.match(/\/gp\/product\/([A-Z0-9]{10})/i);
       result.externalId = asinMatch?.[1] ?? null;
 
       // Title
@@ -40,7 +53,10 @@ export class AmazonScraper implements StoreScraper {
         if (price) {
           result.price = price;
           result.originalPrice = originalPrice;
-          result.currency = currency;
+          // Enforce India-only currency
+          result.currency = currency?.toUpperCase() === AMAZON_CURRENCY
+            ? AMAZON_CURRENCY
+            : AMAZON_CURRENCY;
           result.extractedVia = "json-ld";
         }
       }
@@ -62,7 +78,7 @@ export class AmazonScraper implements StoreScraper {
           const price = parsePrice(text);
           if (price) {
             result.price = price;
-            result.currency = text.includes("₹") ? "INR" : "USD";
+            result.currency = AMAZON_CURRENCY;
             result.extractedVia = "selector";
             break;
           }
@@ -124,7 +140,7 @@ export class AmazonScraper implements StoreScraper {
   async searchProducts(query: string, limit = 5): Promise<ScraperSearchResult[]> {
     const results: ScraperSearchResult[] = [];
     try {
-      const searchUrl = `https://www.amazon.in/s?k=${encodeURIComponent(query)}`;
+      const searchUrl = buildAmazonIndiaSearchUrl(query);
       const html = await safeFetch(searchUrl);
       const $ = cheerio.load(html);
 
@@ -141,7 +157,7 @@ export class AmazonScraper implements StoreScraper {
         if (title && link) {
           results.push({
             title,
-            url: link.startsWith("http") ? link : `https://www.amazon.in${link}`,
+            url: buildAmazonIndiaProductUrl(asin),
             price: parsePrice(priceText),
             image,
             store: this.storeId,

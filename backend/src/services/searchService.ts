@@ -20,6 +20,7 @@
  */
 
 import { config } from "../config.js";
+import { AMAZON_BASE_URL, AMAZON_DOMAIN } from "../constants/amazon.js";
 
 // --- Public types ---
 
@@ -56,9 +57,9 @@ interface PlatformConfig {
 
 const PLATFORMS: PlatformConfig[] = [
   {
-    site: "amazon.com",
+    site: AMAZON_DOMAIN,
     name: "Amazon",
-    searchUrl: "https://www.amazon.com/s?k=$Q",
+    searchUrl: `${AMAZON_BASE_URL}/s?k=$Q`,
   },
   {
     site: "bestbuy.com",
@@ -193,7 +194,7 @@ interface RawSearchResult {
 
 interface ShoppingResult {
   title: string;
-  source: string; // Retailer name e.g. "Amazon.com", "Best Buy", "Walmart"
+  source: string; // Retailer name e.g. "Amazon", "Best Buy", "Walmart"
   price: number | null;
   url: string;
   imageUrl: string | null;
@@ -428,6 +429,9 @@ export class SearchService {
         for (const sr of shoppingResults) {
           const platform = shoppingSourceToPlatform(sr.source);
           if (!platform) continue;
+          // Enforce Amazon India only: Serper shopping results can include mixed regions/currencies.
+          // We discover Amazon strictly via site:amazon.in web search (Phase 2) or fallback.
+          if (platform === "Amazon") continue;
           if (platform.toLowerCase() === exclude) continue;
           if (coveredPlatforms.has(platform)) continue; // One per store
 

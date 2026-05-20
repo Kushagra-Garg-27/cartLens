@@ -30,6 +30,7 @@ import { currencyService } from "./currencyService.js";
 import { adapterRegistry, type CrossMarketSearchResult } from "../storeAdapters/index.js";
 import type { StoreListing as AdapterStoreListing } from "../storeAdapters/baseAdapter.js";
 import { storeRegistry } from "../stores/registry.js";
+import { AMAZON_CURRENCY, canonicalizeAmazonIndiaUrl } from "../constants/amazon.js";
 import type { ScraperResult } from "../scrapers/base.js";
 import type {
   DetectedProductInput,
@@ -115,6 +116,8 @@ export class PriceAggregatorService {
   async identifyAndAggregate(
     input: DetectedProductInput,
   ): Promise<AggregatedResult> {
+    input = this.normalizeAmazonIndiaInput(input);
+
     // Check cache first
     const cacheKey = CacheKeys.aggregation(
       `${input.title}:${input.platform}`,
@@ -662,30 +665,55 @@ export class PriceAggregatorService {
     return parts.join(" ");
   }
 
+  private normalizeAmazonIndiaInput(input: DetectedProductInput): DetectedProductInput {
+    const platform = (input.platform || "").toLowerCase();
+    if (platform !== "amazon") return input;
+
+    const canonicalUrl = canonicalizeAmazonIndiaUrl(input.url) ?? input.url;
+    const incomingCurrency = (input.currency || "").toUpperCase();
+    const price = incomingCurrency === AMAZON_CURRENCY ? input.price : null;
+
+    return {
+      ...input,
+      platform: "amazon",
+      url: canonicalUrl,
+      currency: AMAZON_CURRENCY,
+      price,
+    };
+  }
+
   /** Generate search URLs for stores without real listings. */
   private buildSearchLinks(
     canonicalTitle: string,
     coveredStores: Set<string>,
     currentPlatform: string,
   ): SearchLink[] {
-    const SEARCH_URLS: Array<{ id: string; name: string; template: string }> = [
-      { id: "amazon", name: "Amazon", template: "https://www.amazon.com/s?k=$Q" },
-      { id: "walmart", name: "Walmart", template: "https://www.walmart.com/search?q=$Q" },
-      { id: "bestbuy", name: "Best Buy", template: "https://www.bestbuy.com/site/searchpage.jsp?st=$Q" },
-      { id: "ebay", name: "eBay", template: "https://www.ebay.com/sch/i.html?_nkw=$Q" },
-      { id: "target", name: "Target", template: "https://www.target.com/s?searchTerm=$Q" },
-      { id: "newegg", name: "Newegg", template: "https://www.newegg.com/p/pl?d=$Q" },
-      { id: "flipkart", name: "Flipkart", template: "https://www.flipkart.com/search?q=$Q" },
-    ];
+    const SEARCH_STORE_IDS = [
+      "amazon",
+      "walmart",
+      "bestbuy",
+      "ebay",
+      "target",
+      "newegg",
+      "flipkart",
+    ] as const;
 
-    const q = encodeURIComponent(canonicalTitle);
-    return SEARCH_URLS
-      .filter(s => !coveredStores.has(s.id) && s.id !== currentPlatform.toLowerCase())
-      .map(s => ({
-        platform: s.id,
-        displayName: s.name,
-        url: s.template.replace("$Q", q),
-      }));
+    const links: SearchLink[] = [];
+    const current = currentPlatform.toLowerCase();
+
+    for (const storeId of SEARCH_STORE_IDS) {
+      if (coveredStores.has(storeId) || storeId === current) continue;
+      const url = storeRegistry.buildSearchUrl(storeId, canonicalTitle);
+      if (!url) continue;
+      const store = storeRegistry.get(storeId);
+      links.push({
+        platform: storeId,
+        displayName: store?.displayName || storeId,
+        url,
+      });
+    }
+
+    return links;
   }
 
   private buildStoreListingsFromScraperResults(

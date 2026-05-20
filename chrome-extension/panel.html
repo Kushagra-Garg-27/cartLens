@@ -1,13 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmartCompare Pro — Side Panel</title>
-    <link rel="stylesheet" href="styles/panel.css" />
-  </head>
-  <body>
-    <div id="panel-root"></div>
-    <script type="module" src="panel.js"></script>
-  </body>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SmartCompare Pro — AI Shopping Copilot</title>
+<link rel="stylesheet" href="panel.css"/>
+</head>
+<body style="margin:0; background:#f0f0f4; min-height:100vh; font-family:'Inter',sans-serif;">
+
+<!-- ═══ BACKDROP OVERLAY ═══ -->
+<div class="sc-backdrop active" id="scBackdrop"></div>
+
+<!-- ═══ FLOATING ACTION BUTTON ═══ -->
+<button class="sc-fab" id="scFab" style="display:none;">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+</button>
+
+<!-- ═══ PANEL ═══ -->
+<div class="sc-panel open" id="scPanel">
+
+  <!-- ── 1. HEADER ── -->
+  <header class="sc-header">
+    <div class="sc-header-left">
+      <button class="sc-back-btn" title="Back">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg>
+      </button>
+      <div class="sc-logo-group">
+        <div class="sc-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <span class="sc-logo-text">SmartCompare</span>
+        <span class="sc-pro-badge">PRO</span>
+      </div>
+    </div>
+    <div class="sc-header-right">
+      <button class="sc-header-btn" title="Search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </button>
+      <button class="sc-header-btn" title="Bookmark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+      </button>
+      <button class="sc-header-btn" id="scClose" title="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── 2. PRODUCT OVERVIEW ── -->
+  <div class="sc-product-card">
+    <div class="sc-product-img" id="scProductImg">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
+    </div>
+    <div class="sc-product-info">
+      <div class="sc-product-name" id="scProductName">iPhone 15 Pro Max 256GB — Natural Titanium</div>
+      <div class="sc-product-category">Electronics › Smartphones</div>
+      <div class="sc-product-rating">
+        <span class="sc-stars">★★★★★</span>
+        <span class="sc-rating-text">(1,247 reviews)</span>
+      </div>
+      <div class="sc-ai-badge">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        AI Verified
+      </div>
+    </div>
+    <button class="sc-product-bookmark">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+    </button>
+  </div>
+
+  <!-- ── SCROLLABLE CONTENT ── -->
+  <div class="sc-content" id="scContent">
+
+    <!-- ── 3. COMPARE ACROSS WEBSITES ── -->
+    <div class="sc-section" style="animation-delay:0.1s">
+      <div class="sc-section-header">
+        <div style="display:flex;align-items:center">
+          <span class="sc-section-num">1.</span>
+          <span class="sc-section-title">Compare across websites
+            <svg class="sc-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="sc-compare-list" id="scCompareList">
+        <!-- Cards injected by JS -->
+      </div>
+
+      <button class="sc-view-all" id="scViewAll">
+        View all 12 websites
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- ── 4. AI PRICE INSIGHTS ── -->
+    <div class="sc-section" style="animation-delay:0.2s">
+      <div class="sc-section-header">
+        <div style="display:flex;align-items:center">
+          <span class="sc-section-num">2.</span>
+          <span class="sc-section-title">Best price insights
+            <svg class="sc-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <div class="sc-insights-grid" id="scInsightsGrid">
+        <!-- Injected by JS -->
+      </div>
+
+      <div class="sc-price-note" id="scPriceNote">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg>
+        <span>You're <strong>₹200.00</strong> above the lowest price</span>
+      </div>
+
+      <div class="sc-ai-rec buy" id="scAiRec">
+        <span class="sc-ai-rec-icon">🚀</span>
+        <span class="sc-ai-rec-text">Great deal — <strong>Buy Now</strong></span>
+      </div>
+    </div>
+
+    <!-- ── 5. PRICE HISTORY CHART ── -->
+    <div class="sc-chart-section" style="animation-delay:0.3s">
+      <div class="sc-section-header">
+        <div style="display:flex;align-items:center">
+          <span class="sc-section-num">3.</span>
+          <span class="sc-section-title">Price history
+            <svg class="sc-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          </span>
+        </div>
+      </div>
+      <div class="sc-chart-card">
+        <div class="sc-chart-filters">
+          <button class="sc-chart-pill" data-range="1M">1M</button>
+          <button class="sc-chart-pill" data-range="3M">3M</button>
+          <button class="sc-chart-pill" data-range="6M">6M</button>
+          <button class="sc-chart-pill active" data-range="1Y">1Y</button>
+          <button class="sc-chart-pill" data-range="All">All</button>
+        </div>
+        <div class="sc-chart-area">
+          <canvas id="scChart"></canvas>
+        </div>
+        <div class="sc-chart-stats">
+          <div><div class="sc-chart-stat-label">Average Price</div><div class="sc-chart-stat-value">₹1,623.50</div></div>
+          <div><div class="sc-chart-stat-label">Price Volatility</div><div class="sc-chart-stat-value" style="display:flex;align-items:center;gap:4px">Medium <span style="font-size:16px">📈</span></div></div>
+          <div><div class="sc-chart-stat-label">Trend (30 days)</div><div class="sc-chart-stat-value" style="color:var(--sc-red)">↓ 2.4% Falling</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 6. SMART ALERTS ── -->
+    <div class="sc-section" style="animation-delay:0.4s">
+      <div class="sc-section-header">
+        <div style="display:flex;align-items:center">
+          <span class="sc-section-num">4.</span>
+          <span class="sc-section-title">Smart alerts
+            <svg class="sc-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+          </span>
+        </div>
+      </div>
+      <div class="sc-alerts-card">
+        <div class="sc-toggle-group">
+          <div class="sc-toggle-row">
+            <div>
+              <div class="sc-toggle-label">Never miss a better price</div>
+              <div class="sc-toggle-sub">Get notified when the price drops below your target.</div>
+            </div>
+            <button class="sc-toggle active" id="scToggleAlert"></button>
+          </div>
+        </div>
+        <div style="height:14px"></div>
+        <div class="sc-alert-row">
+          <input class="sc-alert-input" type="text" value="₹ 1500" id="scAlertInput"/>
+          <button class="sc-alert-btn" id="scSetAlert">Set Alert</button>
+        </div>
+        <div style="height:10px"></div>
+        <div class="sc-toggle-group">
+          <div class="sc-toggle-row">
+            <div>
+              <div class="sc-toggle-label">AI deal alerts</div>
+              <div class="sc-toggle-sub">Smart notifications powered by ML</div>
+            </div>
+            <button class="sc-toggle" id="scToggleAI"></button>
+          </div>
+          <div class="sc-toggle-row">
+            <div>
+              <div class="sc-toggle-label">Email notifications</div>
+              <div class="sc-toggle-sub">Receive alerts via email</div>
+            </div>
+            <button class="sc-toggle" id="scToggleEmail"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sc-spacer"></div>
+  </div>
+
+  <!-- ── 7. BOTTOM NAV ── -->
+  <nav class="sc-bottom-nav">
+    <button class="sc-nav-item active" data-tab="compare">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+      <span class="sc-nav-label">Compare</span>
+    </button>
+    <button class="sc-nav-item" data-tab="alerts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9m-4.27 13a2 2 0 01-3.46 0"/></svg>
+      <span class="sc-nav-label">Alerts</span>
+    </button>
+    <button class="sc-nav-item" data-tab="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      <span class="sc-nav-label">History</span>
+    </button>
+    <button class="sc-nav-item" data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span class="sc-nav-label">Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="panel.js"></script>
+</body>
 </html>

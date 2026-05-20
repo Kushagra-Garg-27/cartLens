@@ -23,7 +23,7 @@ import type {
 
 // Known platform→seller mapping (trust scores and display names)
 const PLATFORM_META: Record<string, { name: string; trustScore: number }> = {
-  Amazon: { name: "Amazon.com", trustScore: 96 },
+  Amazon: { name: "Amazon.in", trustScore: 96 },
   BestBuy: { name: "Best Buy", trustScore: 94 },
   Walmart: { name: "Walmart.com", trustScore: 92 },
   eBay: { name: "eBay Top Seller", trustScore: 88 },

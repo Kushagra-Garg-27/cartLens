@@ -233,27 +233,35 @@ export async function productRoutes(
   });
 }
 
-const SEARCH_URL_TEMPLATES: Array<{ id: string; name: string; template: string }> = [
-  { id: "amazon", name: "Amazon", template: "https://www.amazon.com/s?k=$Q" },
-  { id: "walmart", name: "Walmart", template: "https://www.walmart.com/search?q=$Q" },
-  { id: "bestbuy", name: "Best Buy", template: "https://www.bestbuy.com/site/searchpage.jsp?st=$Q" },
-  { id: "ebay", name: "eBay", template: "https://www.ebay.com/sch/i.html?_nkw=$Q" },
-  { id: "target", name: "Target", template: "https://www.target.com/s?searchTerm=$Q" },
-  { id: "newegg", name: "Newegg", template: "https://www.newegg.com/p/pl?d=$Q" },
-  { id: "flipkart", name: "Flipkart", template: "https://www.flipkart.com/search?q=$Q" },
-];
+const SEARCH_STORE_IDS = [
+  "amazon",
+  "walmart",
+  "bestbuy",
+  "ebay",
+  "target",
+  "newegg",
+  "flipkart",
+] as const;
 
 function buildSearchLinks(
   canonicalTitle: string,
   coveredStores: Set<string>,
   currentPlatform: string,
 ): SearchLink[] {
-  const q = encodeURIComponent(canonicalTitle);
-  return SEARCH_URL_TEMPLATES
-    .filter(s => !coveredStores.has(s.id) && s.id !== currentPlatform.toLowerCase())
-    .map(s => ({
-      platform: s.id,
-      displayName: s.name,
-      url: s.template.replace("$Q", q),
-    }));
+  const links: SearchLink[] = [];
+  const current = currentPlatform.toLowerCase();
+
+  for (const storeId of SEARCH_STORE_IDS) {
+    if (coveredStores.has(storeId) || storeId === current) continue;
+    const url = storeRegistry.buildSearchUrl(storeId, canonicalTitle);
+    if (!url) continue;
+    const store = storeRegistry.get(storeId);
+    links.push({
+      platform: storeId,
+      displayName: store?.displayName || storeId,
+      url,
+    });
+  }
+
+  return links;
 }
