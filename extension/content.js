@@ -78,37 +78,50 @@ function extractAmazon(){
 }
 
 function extractFlipkart(){
+  try {
   if (!location.href.includes("/p/")) return null;
-  // Title: try multiple selectors
-  var t = qt('h1 span') || qt('h1');
+  // Title: robust fallback chain
+  var t = qt('.B_NuCI') || qt('.yhB1nd') || qt('h1._9E25nV') || qt('h1 span') || qt('h1');
   
-  // Price: try direct selectors first (Flipkart uses dynamic class names)
+  // Price: multi-strategy with robust fallback chain
   var p = null;
-  // Strategy 1: Look for div with class containing "price" near the buy button area
+  // Strategy 1: Known Flipkart CSS class selectors (rotated frequently)
   var priceSelectors = [
-    'div[class*="CxhGGd"]', // common Flipkart price class
-    'div[class*="Nx9bqj"]', // another common one
-    'div[class*="_30jeq3"]', // older Flipkart
-    'div[class*="_16Jk6d"]', // variant
+    '._30jeq3._16Jk6d',
+    '._16Jk6d',
+    '.Nx9bqj.CxhGGd',
+    '.CEmiEU .Nx9bqj',
+    '._25b18c ._30jeq3',
+    'div[class*="CxhGGd"]',
+    'div[class*="Nx9bqj"]',
+    'div[class*="_30jeq3"]',
+    'div[class*="_16Jk6d"]',
     'span[class*="CxhGGd"]',
     'span[class*="Nx9bqj"]',
+    '[class*="price"] [class*="30jeq"]',
   ];
   for (var si = 0; si < priceSelectors.length && !p; si++) {
-    var pel = qs(priceSelectors[si]);
-    if (pel) p = parsePrice(pel.innerText);
+    try {
+      var pel = document.querySelector(priceSelectors[si]);
+      if (pel && pel.innerText) p = parsePrice(pel.innerText);
+    } catch(e) { /* selector parse error, skip */ }
   }
   
-  // Strategy 2: Find any element containing ₹ followed by digits
+  // Strategy 2: Find any element whose text starts with ₹ + digits
   if (!p) {
-    var allEls = document.querySelectorAll('div,span');
+    var allEls = document.querySelectorAll('div,span,strong');
     for (var i = 0; i < allEls.length && !p; i++) {
       var el = allEls[i];
-      if (el.children.length > 2) continue;
-      var txt = (el.innerText || '').trim();
-      if (txt.length > 15) continue; // price text is short
+      if (!el || !el.innerText) continue;
+      var childCount = 0; try { childCount = el.children.length; } catch(e) { continue; }
+      if (childCount > 2) continue;
+      var txt = el.innerText.trim();
+      if (txt.length > 20 || txt.length < 2) continue;
       if (/\u20b9\s*[\d,]+/.test(txt)) {
-        var style = window.getComputedStyle(el);
-        if (style.textDecoration && style.textDecoration.includes('line-through')) continue;
+        try {
+          var style = window.getComputedStyle(el);
+          if (style && style.textDecoration && style.textDecoration.includes('line-through')) continue;
+        } catch(e) { /* skip style check */ }
         var val = parseInt(txt.replace(/[^0-9]/g,''), 10);
         if (val > 100 && val < 10000000) { p = val; break; }
       }
@@ -128,6 +141,7 @@ function extractFlipkart(){
     storage: findSpecValue(["Internal Storage","Storage"]),
     url: location.href, platform: "flipkart.com"
   };
+  } catch(ex) { console.warn('[SCP] Flipkart extract error:', ex); return null; }
 }
 
 function extractMyntra(){
@@ -212,10 +226,17 @@ const EXTRACTORS={"amazon.in":extractAmazon,"flipkart.com":extractFlipkart,
   "decathlon.in":extractDecathlon,"kitabay.com":extractKitabay};
 
 function extractProductData(platform){
-  const fn=EXTRACTORS[platform];if(!fn)return null;
-  const d=fn();
-  if(!d || !d.title) return null;
-  return d;
+  var fn=EXTRACTORS[platform];if(!fn)return null;
+  try {
+    var d=fn();
+    if(!d) return null;
+    // Allow null price — backend handles it. Only require title OR url.
+    if(!d.title && !d.url) return null;
+    return d;
+  } catch(e) {
+    console.warn('[SCP] Extraction error on', platform, e);
+    return null;
+  }
 }
 
 function msg(m){return new Promise(function(res,rej){
@@ -465,20 +486,16 @@ function doCompare(productData,silent){
     if(data.status==='queued'){
       pollRetries++;
       setQueued(pollRetries);
-      if(pollRetries>=12){setQueuedTimeout();return;}
       if(pollInterval)clearTimeout(pollInterval);
-      pollInterval=setTimeout(function(){runComparison(true)},10000);
+      // Back off: 10s for first 6, 15s for next 6, then 30s
+      var delay = pollRetries<=6 ? 10000 : pollRetries<=12 ? 15000 : 30000;
+      pollInterval=setTimeout(function(){runComparison(true)},delay);
       return;
     }
     pollRetries=0;
     if(data.status==='found'&&data.results&&data.results.length>0){renderFound(data);}
     else{setNoMatch();}
   }).catch(function(err){if(!isContextValid())return;if(!silent)setError('Could not connect to server','network');});
-}
-function setQueuedTimeout(){
-  var el=document.getElementById('scp-main-content');if(!el)return;
-  el.innerHTML='<div style="text-align:center;padding:40px 24px"><div style="font-size:36px;margin-bottom:12px">\u23f3</div><div style="font-size:15px;font-weight:600;color:#1a1a2e">Still processing</div><div style="font-size:13px;color:#64668b;margin-top:8px">The backend is taking longer than expected. Try refreshing.</div><button class="sc-alert-btn" id="scp-refresh" style="margin-top:16px">Refresh Now</button></div>';
-  var rb=document.getElementById('scp-refresh');if(rb)rb.addEventListener('click',function(){pollRetries=0;runComparison();});
 }
 
 // -- SPA Nav --

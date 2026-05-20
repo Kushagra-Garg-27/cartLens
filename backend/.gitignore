@@ -1,7 +1,3 @@
 node_modules/
 dist/
 .env
-*.js
-*.d.ts
-*.js.map
-!src/db/schema.sql
