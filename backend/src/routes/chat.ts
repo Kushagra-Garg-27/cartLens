@@ -7,7 +7,7 @@
  * Falls back to a non-streaming mock response when GEMINI_API_KEY is not set.
  */
 
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { config } from "../config.js";
 import type { ChatMessage, ChatContext } from "../types.js";
 
@@ -15,14 +15,17 @@ export async function chatRoutes(fastify: FastifyInstance) {
   // --- POST /ai/chat ---
   fastify.post<{ Body: { messages: ChatMessage[]; context: ChatContext } }>(
     "/ai/chat",
-    async (request, reply) => {
+    async (
+      request: FastifyRequest<{ Body: { messages: ChatMessage[]; context: ChatContext } }>,
+      reply: FastifyReply,
+    ) => {
       const { messages, context } = request.body;
 
       const systemPrompt = buildSystemPrompt(context);
       const geminiMessages = [
         { role: "user" as const, parts: [{ text: systemPrompt }] },
         { role: "model" as const, parts: [{ text: "Understood. I'm ready to help as a shopping advisor." }] },
-        ...messages.map((m) => ({
+        ...messages.map((m: ChatMessage) => ({
           role: m.role === "user" ? ("user" as const) : ("model" as const),
           parts: [{ text: m.content }],
         })),
@@ -64,7 +67,7 @@ Keep responses brief (2-4 sentences). Use data from the context to give specific
 }
 
 async function streamFromGemini(
-  reply: import("fastify").FastifyReply,
+  reply: FastifyReply,
   contents: { role: string; parts: { text: string }[] }[],
 ) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${encodeURIComponent(config.geminiApiKey)}`;
@@ -115,7 +118,7 @@ async function streamFromGemini(
 }
 
 async function streamMockResponse(
-  reply: import("fastify").FastifyReply,
+  reply: FastifyReply,
   messages: ChatMessage[],
   context: ChatContext,
 ) {
@@ -189,6 +192,6 @@ function generateMockAdvice(
   return `The ${context.product} is priced at $${context.currentPrice} at ${context.store} with a deal score of ${context.dealScore}/100 and seller trust of ${context.sellerTrust}/100. What specific aspect would you like to know more about — pricing trends, alternatives, or purchase advice?`;
 }
 
-function fastifyLog(reply: import("fastify").FastifyReply, message: string) {
+function fastifyLog(reply: FastifyReply, message: string) {
   reply.log?.warn?.(message);
 }

@@ -36,10 +36,10 @@ export const products = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_products_category").on(table.category),
-    index("idx_products_brand_model").on(table.brand, table.model),
-  ],
+  (table) => ({
+    idxProductsCategory: index("idx_products_category").on(table.category),
+    idxProductsBrandModel: index("idx_products_brand_model").on(table.brand, table.model),
+  }),
 );
 
 // ============================================================
@@ -56,9 +56,9 @@ export const sellers = pgTable(
     verified: boolean("verified").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    uniqueIndex("idx_sellers_name_platform").on(table.name, table.platform),
-  ],
+  (table) => ({
+    idxSellersNamePlatform: uniqueIndex("idx_sellers_name_platform").on(table.name, table.platform),
+  }),
 );
 
 // ============================================================
@@ -89,11 +89,11 @@ export const productListings = pgTable(
     lastChecked: timestamp("last_checked", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_listings_product").on(table.productId),
-    index("idx_listings_store").on(table.store),
-    uniqueIndex("idx_listings_store_external").on(table.store, table.externalId),
-  ],
+  (table) => ({
+    idxListingsProduct: index("idx_listings_product").on(table.productId),
+    idxListingsStore: index("idx_listings_store").on(table.store),
+    idxListingsStoreExternal: uniqueIndex("idx_listings_store_external").on(table.store, table.externalId),
+  }),
 );
 
 // ============================================================
@@ -111,11 +111,11 @@ export const priceHistory = pgTable(
     currency: text("currency").notNull().default("INR"),
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_history_listing").on(table.listingId),
-    index("idx_history_product").on(table.productId),
-    index("idx_history_time").on(table.recordedAt),
-  ],
+  (table) => ({
+    idxHistoryListing: index("idx_history_listing").on(table.listingId),
+    idxHistoryProduct: index("idx_history_product").on(table.productId),
+    idxHistoryTime: index("idx_history_time").on(table.recordedAt),
+  }),
 );
 
 // ============================================================
@@ -139,10 +139,10 @@ export const deals = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_deals_store").on(table.store),
-    index("idx_deals_score").on(table.dealScore),
-  ],
+  (table) => ({
+    idxDealsStore: index("idx_deals_store").on(table.store),
+    idxDealsScore: index("idx_deals_score").on(table.dealScore),
+  }),
 );
 
 // ============================================================
@@ -164,9 +164,9 @@ export const watchlist = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_watchlist_user").on(table.userId),
-  ],
+  (table) => ({
+    idxWatchlistUser: index("idx_watchlist_user").on(table.userId),
+  }),
 );
 
 // ============================================================
@@ -185,9 +185,9 @@ export const notifications = pgTable(
     link: text("link"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_notifications_user").on(table.userId),
-  ],
+  (table) => ({
+    idxNotificationsUser: index("idx_notifications_user").on(table.userId),
+  }),
 );
 
 // ============================================================
@@ -205,7 +205,7 @@ export const affiliateClicks = pgTable(
     affiliateNetwork: text("affiliate_network"),
     clickedAt: timestamp("clicked_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [
-    index("idx_affiliate_user").on(table.userId),
-  ],
+  (table) => ({
+    idxAffiliateUser: index("idx_affiliate_user").on(table.userId),
+  }),
 );
