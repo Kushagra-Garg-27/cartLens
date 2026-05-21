@@ -1,0 +1,2 @@
+ALTER TABLE products ADD COLUMN IF NOT EXISTS ai_attributes JSONB DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS ai_product_type TEXT;

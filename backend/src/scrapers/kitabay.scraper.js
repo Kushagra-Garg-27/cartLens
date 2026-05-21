@@ -1,49 +1,68 @@
+const { acquireBrowser, releaseBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
-const { parsePrice } = require("./playwright.base");
 
+/**
+ * Scrape Kitabay product page.
+ * @param {string} url
+ * @returns {Promise<Object>}
+ */
 async function scrape(url) {
-  const fetch = (await import("node-fetch")).default;
-  const cheerio = require("cheerio");
+  let browser;
+  let page;
+  try {
+    browser = await acquireBrowser();
+    page = await newStealthPage(browser);
 
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    },
-    timeout: 15000,
-  });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 
-  if (!response.ok) {
-    throw new Error(`Kitabay: HTTP ${response.status} for ${url}`);
+    // Handle search URLs or if the url is not a product detail page (does not contain /products/)
+    if (!url.includes("/products/") || url.includes("/search") || url.includes("q=")) {
+      // Wait for product links to render
+      await page.waitForSelector("a[href*='/products/']", { timeout: 15000 }).catch(() => {});
+      
+      const productUrl = await page.evaluate(() => {
+        // Try various selectors or find any anchor containing /products/
+        const pdLink = document.querySelector('a[href*="/products/"]');
+        return pdLink ? pdLink.getAttribute("href") : null;
+      });
+
+      if (!productUrl) throw new Error("Kitabay: No search results found");
+      url = productUrl.startsWith("http") ? productUrl : "https://kitabay.com" + productUrl;
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    }
+
+    // Wait for content to render
+    await page.waitForTimeout(2000);
+
+    // Extract title
+    const titleEl = await page.$("h1") || await page.$(".product-title") || await page.$(".title");
+    if (!titleEl) throw new Error("Kitabay: product title selector not found");
+    const title = (await titleEl.textContent()).trim();
+
+    // Extract price
+    const priceEl = await page.$(".price__regular .price-item--regular") || await page.$(".price-item--sale") || await page.$(".price-item--regular") || await page.$('[class*="price"]');
+    if (!priceEl) throw new Error("Kitabay: price selector not found");
+    const priceText = await priceEl.textContent();
+    const price = parsePrice(priceText);
+
+    // Extract image URL
+    let imageUrl = "";
+    const imgEl = await page.$(".product__media img") || await page.$("img");
+    if (imgEl) {
+      imageUrl = await imgEl.getAttribute("src") || "";
+    }
+
+    logger.info({
+      service: "scraper",
+      event: "scrape_complete",
+      platform: "kitabay",
+    });
+
+    return { title, price, brand: "Kitabay", imageUrl, availability: "in_stock", platform: "kitabay", url };
+  } finally {
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
-
-  const html = await response.text();
-  const $ = cheerio.load(html);
-
-  // Handle search URLs
-  if (url.includes("/search?q=")) {
-    const firstResult = $("a.card__heading").first(); // Based on Shopify typical theme or just 'a[href*="/products/"]'
-    const productUrl = firstResult.length > 0 ? firstResult.attr("href") : $("a[href*='/products/']").first().attr("href");
-    
-    if (!productUrl) throw new Error("Kitabay: No search results found");
-    
-    url = productUrl.startsWith("http") ? productUrl : "https://kitabay.com" + productUrl;
-    const prodRes = await fetch(url, { headers: response.headers || {} });
-    if (!prodRes.ok) throw new Error(`Kitabay: HTTP ${prodRes.status} for product ${url}`);
-    return scrape(url);
-  }
-
-  const title = $("h1").first().text().trim();
-  const priceText = $(".price__regular .price-item--regular, .price-item--sale").first().text().trim();
-  if (!priceText) throw new Error("Kitabay: price selector not found");
-  const price = parsePrice(priceText);
-
-  logger.info({
-    service: "scraper",
-    event: "scrape_complete",
-    platform: "kitabay",
-  });
-
-  return { title, price, brand: "", modelNumber: "", availability: "in_stock", platform: "kitabay", url };
 }
 
 module.exports = { scrape };

@@ -13,6 +13,7 @@
 const db = require("../db");
 const { matchScoreWeighted } = require("../utils/text.utils");
 const { detectCategory } = require("../utils/category.detector");
+const { extractAttributes } = require("./ai.attributes");
 const logger = require("../utils/logger");
 
 /**
@@ -70,15 +71,21 @@ async function resolve(input) {
   }
 
   // 1c. Model Number
+  // Ensure the extracted model is significant enough, and prefer matching brand as well.
   const extractedModel = modelNumber || extractModelNumber(title);
-  if (extractedModel) {
-    const result = await db.query(
-      "SELECT id FROM products WHERE LOWER(model_number) = LOWER($1) LIMIT 1",
-      [extractedModel]
-    );
-    if (result.rows.length > 0) {
-      logger.info({ service: "resolver", event: "layer1_model_match", model: extractedModel });
-      return { productId: result.rows[0].id, matchMethod: "model_number", confidence: 1.0 };
+  if (extractedModel && extractedModel.length > 4) {
+    // Exclude generic specs often mistakenly scraped as models
+    const isGeneric = /snapdragon|dimensity|bionic|exynos|mediatek|processor|chipset|ram|gb|tb|oled|amoled|lcd|black|white|blue|red/i.test(extractedModel);
+    
+    if (!isGeneric) {
+      const result = await db.query(
+        "SELECT id FROM products WHERE LOWER(model_number) = LOWER($1) LIMIT 1",
+        [extractedModel]
+      );
+      if (result.rows.length > 0) {
+        logger.info({ service: "resolver", event: "layer1_model_match", model: extractedModel });
+        return { productId: result.rows[0].id, matchMethod: "model_number", confidence: 1.0 };
+      }
     }
   }
 
@@ -145,8 +152,15 @@ async function resolve(input) {
 
   // ── Layer 2: NLP Attribute Matching ────────────────────────────
   const category = detectCategory({ url, title, brand });
+  
+  // Extract AI attributes for strict matching
+  let searchAttr = null;
+  try {
+    searchAttr = await extractAttributes(title);
+  } catch(e) {}
+
   const candidates = await db.query(
-    `SELECT id, canonical_name, brand, model_number
+    `SELECT id, canonical_name, brand, model_number, ai_product_type, raw_gender, ai_attributes
      FROM products
      WHERE category = $1
      ORDER BY created_at DESC
@@ -158,7 +172,7 @@ async function resolve(input) {
   let allCandidates = candidates.rows;
   if (allCandidates.length < 50) {
     const fallback = await db.query(
-      `SELECT id, canonical_name, brand, model_number
+      `SELECT id, canonical_name, brand, model_number, ai_product_type, raw_gender, ai_attributes
        FROM products
        WHERE category != $1 OR category IS NULL
        ORDER BY created_at DESC
@@ -172,6 +186,30 @@ async function resolve(input) {
   let bestScore = 0;
 
   for (const candidate of allCandidates) {
+    // RELAXED AI FILTERING
+    if (searchAttr && candidate.ai_product_type) {
+      // Rule 1: Product Types must match with synonym compatibility (e.g. "t-shirt", "top", "vest" match)
+      if (!areProductTypesCompatible(searchAttr.product_type, candidate.ai_product_type)) {
+        continue;
+      }
+      // Rule 2: Gender must match with unisex and kids equivalences
+      if (searchAttr.raw_gender && candidate.raw_gender && !areGendersCompatible(searchAttr.raw_gender, candidate.raw_gender)) {
+        continue;
+      }
+      // Rule 3: For phones/electronics, RAM and Storage must match with normalization
+      const sType = (searchAttr.product_type || "").toLowerCase().trim();
+      const cType = (candidate.ai_product_type || "").toLowerCase().trim();
+      if ((sType === "smartphone" || cType === "smartphone") && searchAttr.attributes && candidate.ai_attributes) {
+         const sRam = normalizeSpec(searchAttr.attributes.ram);
+         const cRam = normalizeSpec(candidate.ai_attributes.ram);
+         const sStorage = normalizeSpec(searchAttr.attributes.storage);
+         const cStorage = normalizeSpec(candidate.ai_attributes.storage);
+         if ((sRam && cRam && sRam !== cRam) || (sStorage && cStorage && sStorage !== cStorage)) {
+            continue; // Mismatched variants!
+         }
+      }
+    }
+
     const score = matchScoreWeighted(title, brand, candidate.canonical_name, candidate.brand);
     if (score > bestScore) {
       bestScore = score;
@@ -280,6 +318,54 @@ function extractAjioCode(url) {
   if (!url) return null;
   const match = url.match(/\/p\/([A-Za-z0-9\-]+?)(?:\?|$)/);
   return match ? match[1] : null;
+}
+
+function normalizeSpec(spec) {
+  if (!spec) return "";
+  return String(spec).toLowerCase().replace(/\s+/g, "").trim();
+}
+
+function areProductTypesCompatible(type1, type2) {
+  if (!type1 || !type2) return true;
+  const t1 = type1.toLowerCase().trim().replace(/[-\s]+/g, "");
+  const t2 = type2.toLowerCase().trim().replace(/[-\s]+/g, "");
+  if (t1 === t2) return true;
+
+  const groups = [
+    ["tshirt", "tee", "top", "vest", "shirt", "polo", "undershirt", "innerwear"],
+    ["trouser", "trousers", "pant", "pants", "chinos", "jeans", "denim", "leggings", "joggers", "sweatpants"],
+    ["shoe", "shoes", "sneakers", "sneaker", "footwear", "boots", "loafers", "sandals", "slippers"],
+    ["laptop", "notebook", "macbook", "ultrabook", "chromebook"],
+    ["smartphone", "phone", "mobile", "cellphone"],
+    ["earbuds", "headphone", "headphones", "earphone", "earphones", "airpods"],
+    ["refrigerator", "fridge"],
+    ["tv", "television", "smarttv"],
+    ["watch", "smartwatch"],
+    ["bag", "backpack", "handbag", "suitcase", "duffle"]
+  ];
+
+  const group1 = groups.find(group => group.some(g => t1.includes(g) || g.includes(t1)));
+  const group2 = groups.find(group => group.some(g => t2.includes(g) || g.includes(t2)));
+
+  if (group1 && group2) {
+    return group1.some(g => group2.includes(g));
+  }
+  return false;
+}
+
+function areGendersCompatible(g1, g2) {
+  if (!g1 || !g2) return true;
+  const normalized1 = g1.toLowerCase().trim();
+  const normalized2 = g2.toLowerCase().trim();
+  if (normalized1 === normalized2) return true;
+  if (normalized1 === "unisex" || normalized2 === "unisex") return true;
+
+  const kidsTerms = ["kids", "kid", "boys", "girls", "boy", "girl", "child", "children"];
+  const isKids1 = kidsTerms.includes(normalized1);
+  const isKids2 = kidsTerms.includes(normalized2);
+  if (isKids1 && isKids2) return true;
+
+  return false;
 }
 
 module.exports = { resolve };

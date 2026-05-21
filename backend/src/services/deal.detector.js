@@ -355,19 +355,53 @@ function detectLastSaleEvent(historyRows) {
 }
 
 /**
- * Detect if there is a known active sale event based on current date.
+ * Detect if there is a known active sale event based on current date (or offset date).
+ * @param {number} dateOffset - Number of days to look ahead/behind
  * @returns {string | null}
  */
-function detectActiveSaleEvent() {
+function detectActiveSaleEvent(dateOffset = 0) {
   const now = new Date();
+  if (dateOffset) {
+    now.setDate(now.getDate() + dateOffset);
+  }
   const month = now.getMonth(); // 0-11
   const date = now.getDate();
+  const year = now.getFullYear();
+
+  // 1. Diwali Date Approximation & Sale Window Check (Diwali falls on Amavasya in Kartika)
+  const diwaliMap = {
+    2024: new Date(2024, 9, 31), // Oct 31, 2024
+    2025: new Date(2025, 9, 20), // Oct 20, 2025
+    2026: new Date(2026, 10, 8), // Nov 8, 2026
+    2027: new Date(2027, 9, 29), // Oct 29, 2027
+    2028: new Date(2028, 10, 17), // Nov 17, 2028
+    2029: new Date(2029, 10, 5), // Nov 5, 2029
+    2030: new Date(2030, 9, 26), // Oct 26, 2030
+  };
   
-  // Basic heuristics for Indian sales
+  const diwaliDate = diwaliMap[year] || new Date(year, 9, 30);
+  const currentDateOnly = new Date(year, month, date);
+  const diwaliDateOnly = new Date(diwaliDate.getFullYear(), diwaliDate.getMonth(), diwaliDate.getDate());
+  const diffTime = currentDateOnly - diwaliDateOnly;
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays >= -5 && diffDays <= 1) {
+    return "Diwali Sale";
+  }
+
+  // 2. Specific calendar sales
   if (month === 0 && date >= 15 && date <= 26) return "Republic Day Sale";
   if (month === 7 && date >= 8 && date <= 15) return "Independence Day Sale";
-  if (month === 9 && date >= 1 && date <= 31) return "Festive Season Sale"; // October
-  if (month === 10 && date >= 1 && date <= 15) return "Diwali Sale"; // November
+  if (month === 2 && date >= 10 && date <= 25) return "Holi Sale";
+  
+  // 3. Great Indian Festival & Big Billion Days (late Sept to end of Oct)
+  if ((month === 8 && date >= 20) || month === 9) {
+    return "Big Billion Days & Great Indian Festival Sale";
+  }
+
+  // 4. End of Season Sales (Jan & July)
+  if (month === 0) return "End of Season Sale";
+  if (month === 6) return "End of Season Sale";
   
   return null;
 }
@@ -397,6 +431,37 @@ async function buildDailyPriceHistory(productId) {
   }));
 }
 
+/**
+ * Build daily price histories for each platform individually.
+ * @param {string} productId
+ * @param {number} daysWindow
+ * @returns {Promise<Object>} Map of platform -> Array<{ date: string, price: number }>
+ */
+async function buildPlatformPriceHistory(productId, daysWindow = 90) {
+  const result = await db.query(
+    `SELECT l.platform, DATE(ph.scraped_at) AS day, MIN(ph.price) AS price
+     FROM price_history ph
+     JOIN listings l ON l.id = ph.listing_id
+     WHERE l.product_id = $1 AND ph.scraped_at >= NOW() - ($2 * INTERVAL '1 day')
+     GROUP BY l.platform, DATE(ph.scraped_at)
+     ORDER BY l.platform, day ASC`,
+    [productId, daysWindow]
+  );
+
+  const platformMap = {};
+  for (const row of result.rows) {
+    const platform = row.platform;
+    if (!platformMap[platform]) {
+      platformMap[platform] = [];
+    }
+    platformMap[platform].push({
+      date: row.day.toISOString().split("T")[0],
+      price: parseFloat(row.price),
+    });
+  }
+  return platformMap;
+}
+
 // ── Internal Helpers ─────────────────────────────────────
 
 /**
@@ -424,4 +489,6 @@ module.exports = {
   detectLastSaleEvent,
   detectActiveSaleEvent,
   buildDailyPriceHistory,
+  buildPlatformPriceHistory,
 };
+

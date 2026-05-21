@@ -1,6 +1,10 @@
 /**
  * Scraper mock tests — verify each adapter returns correct shape from fixture HTML.
  */
+jest.mock("../src/db", () => ({
+  query: jest.fn(),
+}));
+
 const { parsePrice } = require("../src/scrapers/playwright.base");
 
 describe("parsePrice", () => {
@@ -144,5 +148,69 @@ describe("Scraper adapter shapes", () => {
     expect(() => {
       throw new Error("Amazon: #productTitle selector not found");
     }).toThrow("selector not found");
+  });
+});
+
+describe("Scraper Result Validation", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("assert that a low-title-match scrape result (< 0.45 score) is NOT saved to listings", async () => {
+    const db = require("../src/db");
+    const { processScrapeJobs } = require("../src/scrapers/scraper.runner");
+    const amazonScraper = require("../src/scrapers/amazon.scraper");
+
+    // 1. Mock db.query to return a pending job
+    const mockJob = {
+      id: "job-123",
+      platform: "amazon",
+      listing_url: "https://amazon.in/dp/B0TEST1234",
+      product_id: "prod-456",
+      attempts: 0,
+    };
+
+    // First call: processScrapeJobs fetches pending job
+    db.query.mockImplementation((sql, params) => {
+      if (sql.includes("UPDATE scrape_jobs")) {
+        return Promise.resolve({ rows: [mockJob] });
+      }
+      if (sql.includes("SELECT canonical_name, brand FROM products")) {
+        return Promise.resolve({
+          rows: [{ canonical_name: "pTron Bassbuds Earbuds", brand: "pTron" }]
+        });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    });
+
+    // 2. Mock scraper to return a completely mismatched product (OnePlus TV)
+    jest.spyOn(amazonScraper, "scrape").mockResolvedValue({
+      title: "OnePlus TV 55 Inch",
+      price: 35000,
+      brand: "OnePlus",
+      platform: "amazon",
+      url: "https://amazon.in/dp/B0TEST1234",
+    });
+
+    // 3. Run the job process
+    await processScrapeJobs();
+
+    // 4. Assertions
+    // Verify we fetched canonical details
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining("SELECT canonical_name, brand FROM products WHERE id = $1"),
+      ["prod-456"]
+    );
+
+    // Verify job was updated to failed status with "low_confidence_match" error
+    expect(db.query).toHaveBeenCalledWith(
+      expect.stringContaining("UPDATE scrape_jobs SET status = 'failed'"),
+      [expect.stringContaining("low_confidence_match"), "job-123"]
+    );
+
+    // Verify listings were NOT upserted (INSERT INTO listings should not be called)
+    const calls = db.query.mock.calls;
+    const listingUpsertCalled = calls.some(call => call[0].includes("INSERT INTO listings"));
+    expect(listingUpsertCalled).toBe(false);
   });
 });

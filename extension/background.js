@@ -1,6 +1,12 @@
 /**
  * SmartCompare Pro — Background Service Worker
  * Handles auth tokens, API proxying, watchlist, and panel toggle messaging.
+ *
+ * CHANGES:
+ * - Verified ADD_WATCHLIST handler: POST /api/watchlist with { product_id, target_price } — already correct
+ * - Verified REMOVE_WATCHLIST handler: DELETE /api/watchlist/:product_id — already correct
+ * - Message types handled: SET_TOKEN, GET_TOKEN, CLEAR_TOKEN, API_REQUEST, COMPARE,
+ *   POLL_JOB, ADD_WATCHLIST, REMOVE_WATCHLIST, TOGGLE_PANEL, OBSERVE
  */
 
 const API_BASE = "http://localhost:3000";

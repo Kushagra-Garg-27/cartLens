@@ -6,12 +6,13 @@
 const PLATFORM_INFO = {
   "amazon.in": { label: "Amazon", searchUrl: "https://www.amazon.in/s?k=", productBase: "https://www.amazon.in/dp/" },
   "flipkart.com": { label: "Flipkart", searchUrl: "https://www.flipkart.com/search?q=", productBase: "https://www.flipkart.com/search?q=" },
-  "croma": { label: "Croma", searchUrl: "https://www.croma.com/search/?text=", productBase: "https://www.croma.com/search/?text=" },
+  "croma": { label: "Croma", searchUrl: "https://www.croma.com/searchB?q=", productBase: "https://www.croma.com/search/?text=" },
   "reliancedigital": { label: "Reliance Digital", searchUrl: "https://www.reliancedigital.in/search?q=", productBase: "https://www.reliancedigital.in/search?q=" },
   "tatacliq": { label: "TataCliq", searchUrl: "https://www.tatacliq.com/search/?searchCategory=all&text=", productBase: "https://www.tatacliq.com/search/?searchCategory=all&text=" },
+  "vijaysales": { label: "Vijay Sales", searchUrl: "https://www.vijaysales.com/search/", productBase: "https://www.vijaysales.com/search/" },
 };
 
-const ELECTRONICS_PLATFORMS = ["amazon.in", "flipkart.com", "croma", "reliancedigital", "tatacliq"];
+const ELECTRONICS_PLATFORMS = ["amazon.in", "flipkart.com", "croma", "reliancedigital", "tatacliq", "vijaysales"];
 
 function hashSeed(str) {
   let hash = 0;

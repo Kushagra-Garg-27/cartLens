@@ -9,6 +9,7 @@ const logger = require("../utils/logger");
 router.get("/:product_id", authMiddleware, async (req, res) => {
   try {
     const { product_id } = req.params;
+    const days = parseInt(req.query.days, 10) || 90;
 
     // Verify product exists
     const productCheck = await db.query(
@@ -67,6 +68,9 @@ router.get("/:product_id", authMiddleware, async (req, res) => {
     // Get daily deduplicated price history (for chart)
     const priceHistory = await dealDetector.buildDailyPriceHistory(product_id);
 
+    // Get platform price history
+    const platformPriceHistory = await dealDetector.buildPlatformPriceHistory(product_id, days);
+
     // Get aggregate price stats
     const priceStats = await dealDetector.computePriceStats(product_id);
 
@@ -76,6 +80,7 @@ router.get("/:product_id", authMiddleware, async (req, res) => {
       brand: product.brand,
       platforms,
       price_history: priceHistory,
+      platform_price_history: platformPriceHistory,
       price_stats: priceStats,
     });
   } catch (err) {

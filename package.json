@@ -6,12 +6,11 @@
   "scripts": {
     "dev:backend": "cd backend && npm run dev",
     "dev:web-app": "cd web-app && npm run dev",
-    "dev:extension": "cd chrome-extension && npm run dev",
     "build:web-app": "cd web-app && npm run build",
-    "build:extension": "cd chrome-extension && npm run build",
-    "install:all": "cd backend && npm install && cd ../web-app && npm install && cd ../chrome-extension && npm install"
+    "install:all": "cd backend && npm install && cd ../web-app && npm install"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "docx": "^9.6.1"
   }
 }

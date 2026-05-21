@@ -14,12 +14,14 @@ const watchlistRoutes = require("./routes/watchlist.routes");
 const historyRoutes = require("./routes/history.routes");
 const healthRoutes = require("./routes/health.routes");
 const observeRoutes = require("./routes/observe.routes");
+const rankerRoutes = require("./routes/ranker.routes");
 
 // Cron jobs
 const { processScrapeJobs } = require("./scrapers/scraper.runner");
 const { enqueueWatchlistedProducts } = require("./cron/watchlist.cron");
 const { enqueueStaleListings } = require("./cron/stale.cron");
 const { cleanupOldPriceHistory, cleanupDoneScrapeJobs } = require("./cron/cleanup.cron");
+const { runSalePrealerts } = require("./cron/sale-prealert.cron");
 
 const app = express();
 
@@ -38,8 +40,12 @@ app.use((req, res, next) => {
     origin === config.app.backendUrl;
 
   if (allowed) {
-    res.setHeader("Access-Control-Allow-Origin", origin || "*");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
+    if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+    } else {
+      res.setHeader("Access-Control-Allow-Origin", "*");
+    }
   }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -56,6 +62,7 @@ app.use("/api/watchlist", watchlistRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/observe", observeRoutes);
+app.use("/api/rank", rankerRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -162,19 +169,30 @@ cron.schedule("0 3 * * 0", async () => {
   }
 });
 
-// ── Start Server ───────────────────────────────────────────
+// Run sale pre-alerts daily at 9:00 AM
+cron.schedule("0 9 * * *", async () => {
+  try {
+    await runSalePrealerts();
+  } catch (err) {
+    logger.error({ service: "cron", event: "sale_prealert_cron_error", error: err.message });
+  }
+});
+
+// ── Start Server ───────────────────────────────────────
 const PORT = config.app.port;
 
-// Run migrations before starting server
-runPendingMigrations().then(() => {
-  app.listen(PORT, () => {
-    logger.info({
-      service: "api",
-      event: "server_started",
-      port: PORT,
-      env: config.app.nodeEnv,
+// Only start the server when run directly (not imported by tests)
+if (require.main === module) {
+  runPendingMigrations().then(() => {
+    app.listen(PORT, () => {
+      logger.info({
+        service: "api",
+        event: "server_started",
+        port: PORT,
+        env: config.app.nodeEnv,
+      });
     });
   });
-});
+}
 
 module.exports = app;

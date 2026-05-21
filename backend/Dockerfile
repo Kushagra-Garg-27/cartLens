@@ -10,10 +10,13 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
-# Install Playwright Chromium
-RUN npx playwright install chromium
+# Install Playwright Chromium into the package-local path
+# PLAYWRIGHT_BROWSERS_PATH=0 stores browsers alongside the package,
+# matching the runtime setting in docker-compose.yml
+ENV PLAYWRIGHT_BROWSERS_PATH=0
+RUN npx playwright install --with-deps chromium
 
 COPY . .
 

@@ -1,3 +1,7 @@
+/**
+ * CHANGES:
+ * - Added gemini.apiKey reading GEMINI_API_KEY from env (optional)
+ */
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -42,6 +46,9 @@ const config = Object.freeze({
         ];
       }
     })(),
+  },
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "",
   },
   rateLimit: {
     compare: parseInt(process.env.RATE_LIMIT_COMPARE, 10) || 30,

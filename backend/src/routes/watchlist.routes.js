@@ -36,6 +36,22 @@ router.post("/", authMiddleware, async (req, res) => {
       [req.userId, product_id, target_price || null]
     );
 
+    // Compute suggested target price
+    const dealDetector = require("../services/deal.detector");
+    const stats = await dealDetector.computePriceStats(product_id);
+    let suggestedTarget = null;
+    if (stats && stats.avg_price_90d) {
+      suggestedTarget = Math.round(parseFloat(stats.avg_price_90d) * 0.85);
+    } else {
+      const minPriceRes = await db.query(
+        "SELECT MIN(current_price) as price FROM listings WHERE product_id = $1 AND current_price IS NOT NULL",
+        [product_id]
+      );
+      if (minPriceRes.rows.length > 0 && minPriceRes.rows[0].price) {
+        suggestedTarget = Math.round(parseFloat(minPriceRes.rows[0].price) * 0.85);
+      }
+    }
+
     // Immediately enqueue priority=1 scrape jobs for this product
     await jobEnqueuer.enqueueForProduct(product_id, 1);
 
@@ -46,7 +62,10 @@ router.post("/", authMiddleware, async (req, res) => {
       product_id: product_id.substring(0, 8),
     });
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json({
+      ...result.rows[0],
+      suggested_target_price: suggestedTarget
+    });
   } catch (err) {
     logger.error({
       service: "api",

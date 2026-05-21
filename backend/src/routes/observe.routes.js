@@ -11,6 +11,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 const logger = require("../utils/logger");
+const { normalizePlatform } = require("../utils/platform.normalizer");
 
 /**
  * POST /api/observe
@@ -24,11 +25,13 @@ router.post("/", async (req, res) => {
   res.json({ ok: true });
 
   try {
-    const { platform, url, title, price, currency, imageUrl } = req.body;
+    const { platform: rawPlatform, url, title, price, currency, imageUrl } = req.body;
 
     // Validate minimum required fields
-    if (!url || !platform) return;
+    if (!url || !rawPlatform) return;
     if (!price || isNaN(Number(price))) return;
+
+    const platform = normalizePlatform(rawPlatform);
 
     const numericPrice = Number(price);
 

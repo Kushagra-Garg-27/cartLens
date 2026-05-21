@@ -1,5 +1,6 @@
 const db = require("../db");
 const dealDetector = require("./deal.detector");
+const specComparator = require("./spec.comparator");
 const { calculateSavings } = require("../utils/format");
 
 /**
@@ -17,9 +18,24 @@ async function assemble(productId, listings, userId) {
   const results = await Promise.all(
     priced.map(async (listing) => {
       const dealTags = await dealDetector.computeTags(listing, priced);
+
+      // Compute effective price by checking coupon discounts
+      let maxDiscount = 0;
+      const coupons = listing.coupon_codes || [];
+      coupons.forEach(coupon => {
+        if (coupon.isPercent) {
+          const disc = (listing.price * coupon.discount) / 100;
+          if (disc > maxDiscount) maxDiscount = disc;
+        } else {
+          if (coupon.discount > maxDiscount) maxDiscount = coupon.discount;
+        }
+      });
+      const effectivePrice = Math.max(0, listing.price - maxDiscount);
+
       return {
         platform: listing.platform,
         price: listing.price,
+        effective_price: effectivePrice,
         currency: listing.currency,
         availability: listing.availability,
         url: listing.url,
@@ -28,6 +44,8 @@ async function assemble(productId, listings, userId) {
         last_scraped_at: listing.last_scraped_at,
         deal_tags: dealTags,
         price_history: listing.price_history,
+        bank_offers: listing.bank_offers || [],
+        coupon_codes: listing.coupon_codes || [],
       };
     })
   );
@@ -59,12 +77,14 @@ async function assemble(productId, listings, userId) {
   // Compute best deal
   let bestDeal = null;
   if (results.length >= 1) {
-    const bestPrice = results[0].price;
+    const sortedByPrice = [...results].sort((a, b) => a.price - b.price);
+    const cheapestListing = sortedByPrice[0];
+    const bestPrice = cheapestListing.price;
     const referencePrice = Math.max(...results.map((r) => r.price));
     const savings = calculateSavings(referencePrice, bestPrice);
 
     bestDeal = {
-      platform: results[0].platform,
+      platform: cheapestListing.platform,
       price: bestPrice,
       savings_percent: savings.percent,
       savings_amount: savings.amount,
@@ -90,18 +110,24 @@ async function assemble(productId, listings, userId) {
   let priceStats = { all_time_high: null, all_time_low: null, avg_price_90d: null, last_sale_price: null, last_sale_date: null };
   let buyRecommendation = { score: 50, label: "Insufficient data", reason: "Not enough history", score_1week: 50, score_1month: 50 };
   let priceHistory = [];
+  let platformPriceHistory = {};
+  let specComparison = [];
 
   if (currentPrice != null) {
-    const [ds, ps, br, ph] = await Promise.all([
+    const [ds, ps, br, ph, pph, sc] = await Promise.all([
       dealDetector.computeDealScore(productId, currentPrice, isLowestAcrossStores),
       dealDetector.computePriceStats(productId),
       dealDetector.computeBuyRecommendation(productId, currentPrice),
       dealDetector.buildDailyPriceHistory(productId),
+      dealDetector.buildPlatformPriceHistory(productId, 90),
+      specComparator.compareSpecs(productId, listings),
     ]);
     dealScore = ds;
     priceStats = ps;
     buyRecommendation = br;
     priceHistory = ph;
+    platformPriceHistory = pph;
+    specComparison = sc;
   }
 
   return {
@@ -115,7 +141,9 @@ async function assemble(productId, listings, userId) {
     deal_context_tag: dealScore.context_tag,
     price_stats: priceStats,
     price_history: priceHistory,
+    platform_price_history: platformPriceHistory,
     buy_recommendation: buyRecommendation,
+    spec_comparison: specComparison,
   };
 }
 

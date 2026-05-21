@@ -152,18 +152,6 @@ const STORES: StoreConfig[] = [
     productUrlPatterns: [/tatacliq\.com\/[^/]+\/p-mp\d+/],
   },
   {
-    id: "jiomart",
-    displayName: "JioMart",
-    domains: ["jiomart.com"],
-    trustScore: 86,
-    currency: "INR",
-    region: "IN",
-    enabled: false,
-    logo: "jiomart",
-    searchUrlTemplate: "https://www.jiomart.com/search/{query}",
-    productUrlPatterns: [/jiomart\.com\/p\/\d+/],
-  },
-  {
     id: "bestbuy",
     displayName: "Best Buy",
     domains: ["bestbuy.com"],

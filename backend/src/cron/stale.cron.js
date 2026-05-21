@@ -8,9 +8,10 @@ const logger = require("../utils/logger");
 async function enqueueStaleListings() {
   try {
     const result = await db.query(
-      `SELECT l.url, l.platform
+      `SELECT l.product_id, l.url, l.platform
        FROM listings l
        WHERE l.last_scraped_at < NOW() - INTERVAL '4 hours'
+       AND l.product_id IS NOT NULL
        AND NOT EXISTS (
          SELECT 1 FROM scrape_jobs sj
          WHERE sj.listing_url = l.url
@@ -22,8 +23,8 @@ async function enqueueStaleListings() {
     let enqueued = 0;
     for (const row of result.rows) {
       await db.query(
-        "INSERT INTO scrape_jobs (listing_url, platform, priority) VALUES ($1, $2, 5)",
-        [row.url, row.platform]
+        "INSERT INTO scrape_jobs (product_id, listing_url, platform, priority) VALUES ($1, $2, $3, 5)",
+        [row.product_id, row.url, row.platform]
       );
       enqueued++;
     }

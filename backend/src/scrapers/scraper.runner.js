@@ -9,6 +9,7 @@
 const db = require("../db");
 const logger = require("../utils/logger");
 const { checkWatchlistAlerts } = require("../services/alert.service");
+const { normalizeProductUrl } = require("../utils/url.normalizer");
 
 // ── Scraper Imports ─────────────────────────────────────────────
 const amazonScraper = require("./amazon.scraper");
@@ -21,9 +22,7 @@ const tatacliqScraper = require("./tatacliq.scraper");
 const reliancedigitalScraper = require("./reliancedigital.scraper");
 const firstcryScraper = require("./firstcry.scraper");
 const blinkitScraper = require("./blinkit.scraper");
-const zeptoScraper = require("./zepto.scraper");
 const bigbasketScraper = require("./bigbasket.scraper");
-const jiomartScraper = require("./jiomart.scraper");
 const appleindiaScraper = require("./appleindia.scraper");
 const decathlonScraper = require("./decathlon.scraper");
 const kitabayScraper = require("./kitabay.scraper");
@@ -42,7 +41,7 @@ async function processScrapeJobs() {
       SELECT id FROM scrape_jobs
       WHERE  status = 'pending'
       AND    run_after <= NOW()
-      AND    attempts < 2
+      AND    attempts < 5
       ORDER  BY priority ASC, created_at ASC
       LIMIT  5
       FOR UPDATE SKIP LOCKED
@@ -62,8 +61,68 @@ async function processOneJob(job) {
 
   try {
     const data = await scrapeByPlatform(job);
-    await upsertListingAndPrice(data, job);
+    if (!data) return; // Unknown platform — already handled and marked failed
+
+    // Component 1: Scraper Result Validation
+    let canonicalName = "";
+    let productBrand = "";
+    if (job.product_id) {
+      const { rows: prodRows } = await db.query(
+        "SELECT canonical_name, brand FROM products WHERE id = $1",
+        [job.product_id]
+      );
+      if (prodRows.length > 0) {
+        canonicalName = prodRows[0].canonical_name;
+        productBrand = prodRows[0].brand || "";
+      }
+    }
+
+    let score = 1.0;
+    let matchMethod = "scraper_validated";
+
+    if (canonicalName) {
+      const scrapedTitle = data.title || "";
+      const scrapedBrand = data.brand || "";
+      const { matchScoreWeighted } = require("../utils/text.utils");
+      score = matchScoreWeighted(scrapedTitle, scrapedBrand, canonicalName, productBrand);
+
+      if (score < 0.45) {
+        const errorMsg = `low_confidence_match: ${score.toFixed(2)}`;
+        logger.warn({
+          service: "scraper",
+          event: "low_confidence_match",
+          job_id: job.id,
+          platform: job.platform,
+          score: score,
+          scraped_title: scrapedTitle,
+          canonical_name: canonicalName
+        });
+        await db.query(
+          "UPDATE scrape_jobs SET status = 'failed', last_error = $1 WHERE id = $2",
+          [errorMsg, job.id]
+        );
+        return;
+      } else if (score < 0.70) {
+        matchMethod = "scraper_low";
+      } else {
+        matchMethod = "scraper_validated";
+      }
+    }
+
+    await upsertListingAndPrice(data, job, score, matchMethod);
     await db.query("UPDATE scrape_jobs SET status = 'done' WHERE id = $1", [job.id]);
+
+    // Component 5: Platform Health Success Tracking
+    await db.query(
+      `INSERT INTO platform_health (platform, total_attempts, success_count, success_rate, updated_at)
+       VALUES ($1, 1, 1, 1.0, NOW())
+       ON CONFLICT (platform) DO UPDATE SET
+         total_attempts = platform_health.total_attempts + 1,
+         success_count = platform_health.success_count + 1,
+         success_rate = (platform_health.success_count + 1)::numeric / (platform_health.total_attempts + 1),
+         updated_at = NOW()`,
+      [job.platform]
+    );
 
     const duration = Date.now() - start;
     logger.info({
@@ -72,6 +131,8 @@ async function processOneJob(job) {
       job_id: job.id,
       platform: job.platform,
       duration_ms: duration,
+      match_confidence: score,
+      match_method: matchMethod
     });
 
     // Check watchlist alerts after successful scrape
@@ -86,12 +147,25 @@ async function processOneJob(job) {
   } catch (err) {
     const duration = Date.now() - start;
 
-    if (job.attempts >= 2) {
+    if (job.attempts >= 5) {
       // Max attempts reached — mark as failed
       await db.query(
         "UPDATE scrape_jobs SET status = 'failed', last_error = $1 WHERE id = $2",
         [err.message, job.id]
       );
+
+      // Component 5: Platform Health Failure Tracking (on retry exhaustion)
+      await db.query(
+        `INSERT INTO platform_health (platform, total_attempts, success_count, success_rate, last_failure_at, updated_at)
+         VALUES ($1, 1, 0, 0.0, NOW(), NOW())
+         ON CONFLICT (platform) DO UPDATE SET
+           total_attempts = platform_health.total_attempts + 1,
+           last_failure_at = NOW(),
+           success_rate = platform_health.success_count::numeric / (platform_health.total_attempts + 1),
+           updated_at = NOW()`,
+        [job.platform]
+      );
+
       logger.error({
         service: "scraper",
         event: "job_failed_permanently",
@@ -150,12 +224,8 @@ async function scrapeByPlatform(job) {
       return firstcryScraper.scrape(job.listing_url);
     case "blinkit":
       return blinkitScraper.scrape(job.listing_url);
-    case "zepto":
-      return zeptoScraper.scrape(job.listing_url);
     case "bigbasket":
       return bigbasketScraper.scrape(job.listing_url);
-    case "jiomart":
-      return jiomartScraper.scrape(job.listing_url);
     case "appleindia":
       return appleindiaScraper.scrape(job.listing_url);
     case "decathlon":
@@ -165,29 +235,56 @@ async function scrapeByPlatform(job) {
     case "vijaysales":
       return vijaysalesScraper.scrape(job.listing_url);
     default:
-      throw new Error(`Unknown platform: ${job.platform}`);
+      // Unknown platform — mark as failed immediately, don't waste retries
+      logger.warn({
+        service: "scraper",
+        event: "unknown_platform",
+        job_id: job.id,
+        platform: job.platform,
+      });
+      await db.query(
+        "UPDATE scrape_jobs SET status = 'failed', last_error = $1 WHERE id = $2",
+        [`Unsupported platform: ${job.platform}`, job.id]
+      );
+      return null;
   }
 }
 
 /**
  * Upsert listing and insert price_history row from scraped data.
+ * Links the listing to the product from the scrape job.
  * @param {Object} data - Scraped product data
- * @param {Object} job - The scrape job
+ * @param {Object} job - The scrape job (contains product_id)
  */
-async function upsertListingAndPrice(data, job) {
+async function upsertListingAndPrice(data, job, matchConfidence = 1.0, matchMethod = "scraper_validated") {
   const platformPid = data.asin || data.flipkartPid || data.styleId || data.productCode || null;
+  const rawUrl = data.url || job.listing_url;
+  const platform = data.platform || job.platform;
+  const url = normalizeProductUrl(rawUrl, platform);
+  const scrapedTitle = data.title || null;
+  const bankOffers = data.bankOffers ? JSON.stringify(data.bankOffers) : '[]';
+  const couponCodes = data.couponCodes ? JSON.stringify(data.couponCodes) : '[]';
 
   // Upsert listing
   const upsertResult = await db.query(
-    `INSERT INTO listings (url, platform, platform_pid, current_price, currency, availability, last_scraped_at)
-     VALUES ($1, $2, $3, $4, 'INR', $5, NOW())
+    `INSERT INTO listings (url, platform, platform_pid, current_price, currency, availability, last_scraped_at, product_id, match_confidence, match_method, scraped_title, bank_offers, coupon_codes)
+     VALUES ($1, $2, $3, $4, 'INR', $5, NOW(), $6, $7, $8, $9, $10, $11)
      ON CONFLICT (url) DO UPDATE SET
        current_price = EXCLUDED.current_price,
        availability = EXCLUDED.availability,
        platform_pid = COALESCE(EXCLUDED.platform_pid, listings.platform_pid),
-       last_scraped_at = NOW()
+       last_scraped_at = NOW(),
+       product_id = COALESCE(listings.product_id, EXCLUDED.product_id),
+       match_confidence = EXCLUDED.match_confidence,
+       match_method = EXCLUDED.match_method,
+       scraped_title = COALESCE(EXCLUDED.scraped_title, listings.scraped_title),
+       bank_offers = COALESCE(EXCLUDED.bank_offers, listings.bank_offers),
+       coupon_codes = COALESCE(EXCLUDED.coupon_codes, listings.coupon_codes)
      RETURNING id, product_id`,
-    [data.url || job.listing_url, data.platform || job.platform, platformPid, data.price, data.availability || "in_stock"]
+    [
+      url, platform, platformPid, data.price, data.availability || "in_stock", job.product_id || null,
+      matchConfidence, matchMethod, scrapedTitle, bankOffers, couponCodes
+    ]
   );
 
   const listing = upsertResult.rows[0];

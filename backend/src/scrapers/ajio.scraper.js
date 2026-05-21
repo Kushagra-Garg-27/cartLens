@@ -1,4 +1,4 @@
-const { launchBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
+const { acquireBrowser, releaseBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
 
 /**
@@ -8,9 +8,10 @@ const logger = require("../utils/logger");
  */
 async function scrape(url) {
   let browser;
+  let page;
   try {
-    browser = await launchBrowser();
-    const page = await newStealthPage(browser);
+    browser = await acquireBrowser();
+    page = await newStealthPage(browser);
 
     await randomDelay();
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
@@ -50,7 +51,8 @@ async function scrape(url) {
 
     return { title, price, brand, productCode, availability, platform: "ajio", url };
   } finally {
-    if (browser) await browser.close();
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
 }
 

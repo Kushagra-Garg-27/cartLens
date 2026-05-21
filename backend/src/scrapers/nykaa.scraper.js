@@ -5,7 +5,7 @@
  * Search URL: https://www.nykaa.com/search/result/?q={query}
  */
 
-const { launchBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
+const { acquireBrowser, releaseBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
 
 /**
@@ -15,12 +15,26 @@ const logger = require("../utils/logger");
  */
 async function scrape(url) {
   let browser;
+  let page;
   try {
-    browser = await launchBrowser();
-    const page = await newStealthPage(browser);
+    browser = await acquireBrowser();
+    page = await newStealthPage(browser);
 
-    await randomDelay();
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+
+    // Handle search URLs or if the url is not a product detail page (does not contain /p/)
+    if (!url.includes("/p/") || url.includes("search") || url.includes("q=")) {
+      await page.waitForSelector("a[href*='/p/']", { timeout: 15000 }).catch(() => {});
+      
+      const productUrl = await page.evaluate(() => {
+        const pdLink = document.querySelector('a[href*="/p/"]');
+        return pdLink ? pdLink.getAttribute("href") : null;
+      });
+
+      if (!productUrl) throw new Error("Nykaa: No search results found");
+      url = productUrl.startsWith("http") ? productUrl : "https://www.nykaa.com" + productUrl;
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    }
 
     // Wait for content to render
     await page.waitForTimeout(2000);
@@ -62,7 +76,8 @@ async function scrape(url) {
 
     return { title, price, brand, imageUrl, availability, platform: "nykaa", url };
   } finally {
-    if (browser) await browser.close();
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
 }
 

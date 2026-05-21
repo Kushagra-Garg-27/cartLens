@@ -6,7 +6,7 @@
  * Rate limit: 5-10s between requests.
  */
 
-const { launchBrowser, newStealthPage, parsePrice } = require("./playwright.base");
+const { acquireBrowser, releaseBrowser, newStealthPage, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
 
 // Default geolocation: Mumbai
@@ -39,6 +39,32 @@ async function scrape(url) {
     // Wait for dynamic content
     await page.waitForTimeout(3000);
 
+    // Intercept search URLs and redirect to first matching product PDP page
+    const isSearch = url.includes("q=") || url.includes("/s/") || url.includes("/search");
+    if (isSearch) {
+      try {
+        await page.waitForSelector('a[href*="/prn/"], a[href*="/p/"], a[href*="/pn/"]', { timeout: 10000 });
+        const anchors = await page.$$('a[href*="/prn/"], a[href*="/p/"], a[href*="/pn/"]');
+        let pdpUrl = null;
+        for (const anchor of anchors) {
+          const href = await anchor.getAttribute("href");
+          if (href) {
+            pdpUrl = href.startsWith("http") ? href : `https://blinkit.com${href}`;
+            break;
+          }
+        }
+        if (pdpUrl) {
+          url = pdpUrl;
+          await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+          await page.waitForTimeout(3000);
+        } else {
+          logger.warn({ service: "scraper", event: "blinkit_search_no_anchor", url });
+        }
+      } catch (e) {
+        logger.warn({ service: "scraper", event: "blinkit_search_redirect_failed", error: e.message, url });
+      }
+    }
+
     // Extract title
     const titleEl = await page.$('[data-testid="product-name"]')
       || await page.$(".product__name")
@@ -69,7 +95,8 @@ async function scrape(url) {
   } catch (err) {
     throw new Error(`Blinkit scraper failed: ${err.message}`);
   } finally {
-    if (browser) await browser.close();
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
 }
 

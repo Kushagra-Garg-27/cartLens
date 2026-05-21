@@ -8,27 +8,27 @@
 const CATEGORY_PATTERNS = [
   {
     category: "fashion",
-    pattern: /myntra|ajio|fashion|dress|shirt|shoes|kurta|saree|jeans|tshirt|t-shirt|lehenga|sneaker|sandal|heel|jacket|blazer|trouser|chino|hoodie|jogger|palazzo|dupatta|skirt|kurti|ethnic|footwear|clothing/i
+    pattern: /\b(?:myntra|ajio|fashion|dresses?|shirts?|shoes?|kurtas?|sarees?|jeans|tshirts?|t-shirt|lehengas?|sneakers?|sandals?|heels?|jackets?|blazers?|trousers?|chinos?|hoodies?|joggers?|palazzos?|dupattas?|skirts?|kurtis?|ethnic|footwear|clothing|apparel|suits?|socks?|activewear|boots?)\b/i
   },
   {
     category: "beauty",
-    pattern: /nykaa|beauty|skincare|lipstick|foundation|serum|moisturizer|mascara|eyeshadow|concealer|sunscreen|cleanser|toner|shampoo|conditioner|perfume|fragrance|deodorant|cream|lotion|makeup/i
+    pattern: /\b(?:nykaa|beauty|skincare|lipsticks?|foundations?|serums?|moisturizers?|mascaras?|eyeshadows?|concealers?|sunscreens?|cleansers?|toners?|shampoos?|conditioners?|perfumes?|fragrances?|deodorants?|lotions?|makeup|lip\s+balm|facewash|face\s+wash|body\s+wash|soaps?)\b|hair\s+(?:oil|cream|gel|wax|color|dye|spray)|\bcream\b(?!\s+(?:cheese|butter|cracker|biscuit|roll|wafer|bun|cake|pie|donut|cookie|pudding|soup))/i
   },
   {
     category: "grocery",
-    pattern: /blinkit|zepto|bigbasket|jiomart|grocery|milk|rice|dal|atta|sugar|oil|ghee|salt|spice|masala|flour|tea|coffee|biscuit|snack|juice|water|bread|butter|cheese|paneer|curd|yogurt|egg|noodle|pasta/i
+    pattern: /\b(?:blinkit|bigbasket|grocery|groceries|milks?|rice|dal|atta|sugar|oils?|ghee|salts?|spices?|masalas?|flours?|teas?|coffees?|biscuits?|snacks?|juices?|waters?|breads?|butters?|cheeses?|paneer|curds?|yogurts?|eggs?|noodles?|pastas?|veggies?|vegetables?|fruits?|pulses?|grains?|cereal|atta|chocolates?)\b/i
   },
   {
     category: "electronics",
-    pattern: /laptop|phone|mobile|tv|television|refrigerator|washing machine|croma|reliance.*digital|headphone|earphone|earbuds|speaker|camera|tablet|smartwatch|charger|power bank|router|monitor|printer|air conditioner|microwave|mixer|grinder|iron|fan|cooler|vacuum/i
+    pattern: /\b(?:laptops?|notebooks?|phones?|mobiles?|tvs?|televisions?|refrigerators?|fridges?|washing\s+machines?|croma|reliance\s+digital|headphones?|earphones?|earbuds?|airpods?|speakers?|cameras?|tablets?|smartwatch(?:es)?|chargers?|power\s+banks?|routers?|monitors?|printers?|air\s+conditioners?|ac|microwaves?|mixers?|grinders?|irons?|fans?|coolers?|vacuums?|hair\s+dryer|hair\s+straightener|appliances?)\b/i
   },
   {
     category: "books",
-    pattern: /book|isbn|novel|paperback|hardcover|author|edition|publisher|bestseller/i
+    pattern: /\b(?:books?|isbn|novels?|paperbacks?|hardcovers?|authors?|editions?|publishers?|bestsellers?|literature|biography|fiction|nonfiction)\b/i
   },
   {
     category: "kids",
-    pattern: /kids|baby|firstcry|toddler|infant|diaper|pampers|toy|stroller|cradle|nursery|newborn|child/i
+    pattern: /\b(?:kids?|baby|babies|firstcry|toddlers?|infants?|diapers?|pampers|toys?|strollers?|cradles?|nursery|newborns?|child|children|maternity)\b/i
   }
 ];
 

@@ -1,4 +1,4 @@
-const { launchBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
+const { acquireBrowser, releaseBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
 
 /**
@@ -8,21 +8,43 @@ const logger = require("../utils/logger");
  */
 async function scrape(url) {
   let browser;
+  let page;
   try {
-    browser = await launchBrowser();
-    const page = await newStealthPage(browser);
+    browser = await acquireBrowser();
+    page = await newStealthPage(browser);
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 
     // Handle search URLs
     if (url.includes("/s?k=")) {
-      const firstResult = await page.$("div[data-component-type='s-search-result'] h2 a");
-      if (!firstResult) throw new Error("Amazon: No search results found");
-      const productUrl = await firstResult.getAttribute("href");
-      if (productUrl) {
-        url = productUrl.startsWith("http") ? productUrl : "https://www.amazon.in" + productUrl;
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-      }
+      const queryMatch = url.match(/[?&]k=([^&]+)/);
+      const query = queryMatch ? decodeURIComponent(queryMatch[1]) : "";
+
+      await page.waitForSelector("div[data-component-type='s-search-result']", { timeout: 15000 }).catch(() => {});
+
+      const candidates = await page.evaluate(() => {
+        const results = [];
+        const items = document.querySelectorAll("div[data-component-type='s-search-result']");
+        for (const item of items) {
+          const linkEl = item.querySelector("h2 a");
+          const titleEl = item.querySelector(".a-text-normal") || item.querySelector("h2 span");
+          if (linkEl && titleEl) {
+            const href = linkEl.getAttribute("href") || "";
+            const titleText = titleEl.innerText || titleEl.textContent || "";
+            if (href && titleText.trim() && !results.some(r => r.url === href)) {
+              results.push({ url: href, title: titleText.trim() });
+            }
+          }
+        }
+        return results.slice(0, 3);
+      });
+
+      if (!candidates || candidates.length === 0) throw new Error("Amazon: No search results found");
+
+      const { pickBestResult } = require("./scraper.utils");
+      const bestProductUrl = pickBestResult(candidates, query);
+      url = bestProductUrl.startsWith("http") ? bestProductUrl : "https://www.amazon.in" + bestProductUrl;
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     }
 
     // Extract title
@@ -31,8 +53,14 @@ async function scrape(url) {
     const title = (await titleEl.textContent()).trim();
 
     // Extract price
-    const priceEl = await page.$(".a-price-whole");
-    if (!priceEl) throw new Error("Amazon: .a-price-whole selector not found");
+    let priceEl = await page.$(".a-price-whole");
+    if (!priceEl) {
+      priceEl = await page.$("#corePriceDisplay_desktop_feature_div .a-price");
+    }
+    if (!priceEl) {
+      priceEl = await page.$("#apex_offerDisplay_desktop .a-price");
+    }
+    if (!priceEl) throw new Error("Amazon: price selector not found");
     const priceText = await priceEl.textContent();
     const price = parsePrice(priceText);
 
@@ -68,15 +96,71 @@ async function scrape(url) {
     const availText = availEl ? (await availEl.textContent()).trim().toLowerCase() : "";
     const availability = availText.includes("in stock") ? "in_stock" : "out_of_stock";
 
+    // Extract bank offers and coupon codes from PDP
+    const promoData = await page.evaluate(() => {
+      const offers = [];
+      const coupons = [];
+
+      // Look for bank offers
+      const vseOffers = document.querySelectorAll('#vse-offers-pills-container .a-carousel-card, [id*="vse-offers-"] .a-box-inner, .best-offers-items .a-list-item');
+      vseOffers.forEach(el => {
+        const text = el.innerText.replace(/\s+/g, ' ').trim();
+        if (text.length > 5 && !offers.includes(text)) {
+          offers.push(text);
+        }
+      });
+
+      // General fallback semantic scan for bank cards
+      const spans = document.querySelectorAll('span, a');
+      spans.forEach(el => {
+        const txt = el.innerText.trim();
+        if (txt.includes("10% Instant Discount") || txt.includes("Bank Offer") || txt.includes("No Cost EMI")) {
+          if (txt.length > 10 && txt.length < 150 && !offers.includes(txt)) {
+            offers.push(txt);
+          }
+        }
+      });
+
+      // Look for coupons
+      const couponTextEl = document.querySelector('.inline-coupon-label, [id*="couponText"], #applicableCoupons');
+      if (couponTextEl) {
+        const text = couponTextEl.innerText;
+        const match = text.match(/Apply\s*₹?\s*(\d+)/i) || text.match(/Save\s*₹?\s*(\d+)/i) || text.match(/(\d+)%\s*coupon/i);
+        if (match) {
+          coupons.push({
+            code: "AMZ_COUPON",
+            text: text.replace(/\s+/g, ' ').trim(),
+            discount: parseInt(match[1], 10),
+            isPercent: text.includes("%")
+          });
+        }
+      }
+      return { offers: offers.slice(0, 5), coupons };
+    });
+
     logger.info({
       service: "scraper",
       event: "scrape_complete",
       platform: "amazon",
+      bank_offers_count: promoData.offers.length,
+      coupons_count: promoData.coupons.length,
     });
 
-    return { title, price, brand, modelNumber, asin, availability, platform: "amazon", url };
+    return {
+      title,
+      price,
+      brand,
+      modelNumber,
+      asin,
+      availability,
+      platform: "amazon",
+      url,
+      bankOffers: promoData.offers,
+      couponCodes: promoData.coupons
+    };
   } finally {
-    if (browser) await browser.close();
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
 }
 

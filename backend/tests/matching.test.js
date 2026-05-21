@@ -54,7 +54,8 @@ describe("Text Matching Utilities", () => {
         "Samsung Galaxy S24 Ultra 256 GB - Titanium Black"
       );
       // Jaccard similarity: tokens differ slightly due to "256gb" vs "256" + "gb"
-      expect(score).toBeGreaterThanOrEqual(0.60);
+      // Expanded STOP_WORDS now filters colors like "titanium" and "black", reducing overlap
+      expect(score).toBeGreaterThanOrEqual(0.55);
     });
 
     test("different brands return 0.0", () => {
@@ -98,6 +99,38 @@ describe("Text Matching Utilities", () => {
         null
       );
       expect(score).toBe(1.0);
+    });
+  });
+
+  describe("pickBestResult", () => {
+    const { pickBestResult } = require("../src/scrapers/scraper.utils");
+
+    test("selects the candidate with the highest Jaccard overlap", () => {
+      const candidates = [
+        { url: "/p1", title: "Samsung Galaxy S24 Ultra 256GB" },
+        { url: "/p2", title: "OnePlus TV 55 Inch" },
+        { url: "/p3", title: "Apple iPhone 15 Pro Max" }
+      ];
+      const query = "Samsung S24 Ultra";
+      expect(pickBestResult(candidates, query)).toBe("/p1");
+    });
+
+    test("falls back to the first candidate if no candidate scores above 0.2", () => {
+      const candidates = [
+        { url: "/p1", title: "Unrelated Item A" },
+        { url: "/p2", title: "Totally Different B" }
+      ];
+      const query = "Samsung S24 Ultra";
+      expect(pickBestResult(candidates, query)).toBe("/p1");
+    });
+
+    test("returns first candidate if query is empty or not provided", () => {
+      const candidates = [
+        { url: "/p1", title: "Item A" },
+        { url: "/p2", title: "Item B" }
+      ];
+      expect(pickBestResult(candidates, "")).toBe("/p1");
+      expect(pickBestResult(candidates, null)).toBe("/p1");
     });
   });
 });

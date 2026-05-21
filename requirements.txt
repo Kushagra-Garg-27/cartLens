@@ -1,0 +1,5 @@
+This is a Node.js project.
+Dependencies are managed via npm. See backend/package.json.
+
+To install:
+cd backend && npm install

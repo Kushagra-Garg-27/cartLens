@@ -12,7 +12,7 @@ const PLATFORMS_BY_CATEGORY = {
   electronics: ["amazon", "flipkart", "croma", "reliancedigital", "tatacliq"],
   fashion: ["amazon", "flipkart", "myntra", "ajio", "tatacliq", "nykaa"],
   beauty: ["amazon", "flipkart", "nykaa", "tatacliq"],
-  grocery: ["bigbasket", "jiomart", "blinkit", "zepto"],
+  grocery: ["bigbasket", "blinkit"],
   books: ["amazon", "flipkart"],
   kids: ["amazon", "flipkart", "firstcry"],
 };
@@ -87,9 +87,7 @@ function getDomainForPlatform(platform) {
     reliancedigital: "reliancedigital.in",
     firstcry: "firstcry.com",
     blinkit: "blinkit.com",
-    zepto: "zeptonow.com",
     bigbasket: "bigbasket.com",
-    jiomart: "jiomart.com",
   };
   return domainMap[platform] || `${platform}.com`;
 }

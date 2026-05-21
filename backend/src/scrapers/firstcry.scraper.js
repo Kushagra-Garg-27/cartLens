@@ -1,12 +1,4 @@
-/**
- * SmartCompare Pro — FirstCry Scraper (Cheerio — static)
- *
- * Scrapes FirstCry product pages for kids and fashion products.
- * Uses Cheerio for static HTML parsing — no browser needed.
- * Rate limit: 5s between requests.
- */
-
-const cheerio = require("cheerio");
+const { acquireBrowser, releaseBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
 
 /**
@@ -15,47 +7,110 @@ const logger = require("../utils/logger");
  * @returns {Promise<Object>}
  */
 async function scrape(url) {
+  let browser;
+  let page;
   try {
-    // Random delay 5-10s
-    const delay = Math.floor(Math.random() * 5000) + 5000;
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    browser = await acquireBrowser();
+    page = await newStealthPage(browser);
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-IN,en;q=0.9",
-      },
-    });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 
-    if (!response.ok) throw new Error(`FirstCry: HTTP ${response.status}`);
+    // Handle search URLs or if the url is not a product detail page (does not contain /product-detail)
+    if (!url.includes("/product-detail") || url.includes("/search") || url.includes("q=")) {
+      // Wait for product links to render
+      await page.waitForSelector("a[href*='/product-detail']", { timeout: 15000 }).catch(() => {});
+      
+      const productUrl = await page.evaluate(() => {
+        const pdLink = document.querySelector('a[href*="/product-detail"]');
+        return pdLink ? pdLink.getAttribute("href") : null;
+      });
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
+      if (!productUrl) throw new Error("FirstCry: No search results found");
+      
+      if (productUrl.startsWith("//")) {
+        url = "https:" + productUrl;
+      } else if (productUrl.startsWith("/")) {
+        url = "https://www.firstcry.com" + productUrl;
+      } else {
+        url = productUrl;
+      }
+      
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    }
+
+    // Wait for content to render
+    await page.waitForTimeout(2000);
 
     // Extract title
-    const title = $("h1.title").text().trim()
-      || $(".product-title").text().trim()
-      || $("h1").first().text().trim();
-    if (!title) throw new Error("FirstCry: product title not found");
+    const title = await page.evaluate(() => {
+      const selectors = [
+        "h1.title",
+        ".product-title",
+        "h1"
+      ];
+      for (const sel of selectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText && el.innerText.trim()) {
+          return el.innerText.trim();
+        }
+      }
+      return document.title || "";
+    });
 
-    // Extract price
-    const priceText = $(".price-discounted").text().trim()
-      || $(".final-price").text().trim()
-      || $('[class*="offer-price"]').first().text().trim()
-      || $('[class*="price"]').first().text().trim();
-    if (!priceText) throw new Error("FirstCry: price not found");
-    const price = parseInt(priceText.replace(/[^0-9]/g, ""), 10);
-    if (isNaN(price)) throw new Error(`FirstCry: failed to parse price: "${priceText}"`);
+    let cleanTitle = title;
+    if (cleanTitle) {
+      cleanTitle = cleanTitle.replace(/\s*[-|:|•]\s*(FirstCry|First Cry).*/i, "").trim();
+    }
+    if (!cleanTitle) throw new Error("FirstCry: product title not found");
+
+    // Extract price using multi-strategy evaluation
+    const price = await page.evaluate(() => {
+      function cleanPrice(s) {
+        if (!s) return null;
+        let clean = String(s).trim();
+        // Split on MRP/Off to isolate selling price from combined text
+        const parts = clean.split(/(?:MRP|mrp|Off|off|Save|save|Discount|discount|%)/i);
+        if (parts.length > 0) clean = parts[0];
+        // Strip trailing paise (.XX) — Indian prices rarely use paise
+        if (/\.\d{2}$/.test(clean)) {
+          clean = clean.substring(0, clean.length - 3);
+        } else if (/\.\d{1}$/.test(clean)) {
+          clean = clean.substring(0, clean.length - 2);
+        }
+        const c = clean.replace(/[^0-9]/g, "");
+        return c ? parseInt(c, 10) : null;
+      }
+
+      const priceSelectors = [".r1_btm", ".price-discounted", ".final-price", '[class*="offer-price"]', '[class*="price"]', ".rupee_btm"];
+      for (const sel of priceSelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.innerText) {
+          const val = cleanPrice(el.innerText);
+          if (val && val > 0) return val;
+        }
+      }
+      return null;
+    });
+
+    if (!price) throw new Error("FirstCry: price not found");
 
     // Extract brand
-    const brand = $(".brand-name").text().trim()
-      || $('[class*="brand"]').first().text().trim()
-      || "";
+    let brand = "";
+    const brandEl = await page.$(".brand-name") || await page.$('[class*="brand"]');
+    if (brandEl) {
+      brand = (await brandEl.textContent()).trim();
+    }
 
-    // Availability
-    const soldOut = $('[class*="sold-out"], [class*="out-of-stock"]');
-    const availability = soldOut.length > 0 ? "out_of_stock" : "in_stock";
+    // Extract image URL
+    let imageUrl = "";
+    const imgEl = await page.$(".pdp-img img") || await page.$("#pdpImg") || await page.$("img");
+    if (imgEl) {
+      imageUrl = await imgEl.getAttribute("src") || "";
+    }
+
+    // Availability — check for sold out / out of stock indicators
+    const soldOutEl = await page.$('[class*="sold-out"]') || await page.$('[class*="out-of-stock"]');
+    const availability = soldOutEl ? "out_of_stock" : "in_stock";
 
     logger.info({
       service: "scraper",
@@ -63,9 +118,10 @@ async function scrape(url) {
       platform: "firstcry",
     });
 
-    return { title, price, brand, availability, platform: "firstcry", url };
-  } catch (err) {
-    throw new Error(`FirstCry scraper failed: ${err.message}`);
+    return { title: cleanTitle, price, brand, imageUrl, availability, platform: "firstcry", url };
+  } finally {
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
 }
 

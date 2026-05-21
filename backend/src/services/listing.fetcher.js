@@ -5,7 +5,7 @@ const db = require("../db");
  * @param {string} productId
  * @returns {Promise<Array>}
  */
-async function fetch(productId) {
+async function fetch(productId, minConfidence = 0.4) {
   const result = await db.query(
     `SELECT
       l.id AS listing_id,
@@ -18,6 +18,10 @@ async function fetch(productId) {
       l.match_confidence,
       l.match_method,
       l.last_scraped_at,
+      l.scraped_title,
+      l.bank_offers,
+      l.coupon_codes,
+      p.canonical_name AS title,
       (
         SELECT json_agg(json_build_object(
           'price', ph.price,
@@ -33,14 +37,16 @@ async function fetch(productId) {
         ) ph
       ) AS price_history
     FROM listings l
+    LEFT JOIN products p ON p.id = l.product_id
     WHERE l.product_id = $1
     ORDER BY l.current_price ASC NULLS LAST`,
     [productId]
   );
 
-  return result.rows.map((row) => ({
+  const mapped = result.rows.map((row) => ({
     listing_id: row.listing_id,
     platform: row.platform,
+    title: row.title || null,
     url: row.url,
     platform_pid: row.platform_pid,
     price: row.current_price ? parseFloat(row.current_price) : null,
@@ -49,8 +55,17 @@ async function fetch(productId) {
     match_confidence: row.match_confidence ? parseFloat(row.match_confidence) : null,
     match_method: row.match_method,
     last_scraped_at: row.last_scraped_at,
+    scraped_title: row.scraped_title || null,
+    bank_offers: row.bank_offers || [],
+    coupon_codes: row.coupon_codes || [],
     price_history: row.price_history || [],
   }));
+
+  // Filter out listings where match_confidence is below minConfidence
+  return mapped.filter((l) => {
+    const conf = l.match_confidence != null ? l.match_confidence : 0.8;
+    return conf >= minConfidence;
+  });
 }
 
 module.exports = { fetch };

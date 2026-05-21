@@ -176,8 +176,44 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #666;
-  margin-bottom: 10px;
+  color: #8f92a3;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.site-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.site-categories::-webkit-scrollbar {
+  width: 4px;
+}
+.site-categories::-webkit-scrollbar-track {
+  background: transparent;
+}
+.site-categories::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.site-category {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: #64668b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 2px;
 }
 
 .site-badges {
@@ -187,11 +223,31 @@ body {
 }
 
 .badge {
-  font-size: 11px;
-  padding: 5px 10px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 20px;
-  color: #aaa;
-  font-weight: 500;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: default;
 }
+
+.badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.badge-amazon { background: rgba(255,153,0,0.1); color: #FF9900; border: 1px solid rgba(255,153,0,0.2); }
+.badge-flipkart { background: rgba(40,116,240,0.1); color: #2874F0; border: 1px solid rgba(40,116,240,0.2); }
+.badge-croma { background: rgba(101,172,42,0.1); color: #65AC2A; border: 1px solid rgba(101,172,42,0.2); }
+.badge-rd { background: rgba(27,58,142,0.1); color: #8ba2ff; border: 1px solid rgba(27,58,142,0.2); }
+.badge-vs { background: rgba(226,31,38,0.1); color: #FF4D52; border: 1px solid rgba(226,31,38,0.2); }
+.badge-myntra { background: rgba(255,63,108,0.1); color: #FF3F6C; border: 1px solid rgba(255,63,108,0.2); }
+.badge-ajio { background: rgba(227,24,55,0.1); color: #FF5A73; border: 1px solid rgba(227,24,55,0.2); }
+.badge-nykaa { background: rgba(252,39,121,0.1); color: #FC2779; border: 1px solid rgba(252,39,121,0.2); }
+.badge-cliq { background: rgba(124,92,252,0.1); color: #a78bfa; border: 1px solid rgba(124,92,252,0.2); }
+.badge-firstcry { background: rgba(255,112,67,0.1); color: #FF8A65; border: 1px solid rgba(255,112,67,0.2); }
+.badge-blinkit { background: rgba(245,194,0,0.1); color: #ffd633; border: 1px solid rgba(245,194,0,0.2); }
+.badge-bb { background: rgba(132,194,37,0.1); color: #9ce62d; border: 1px solid rgba(132,194,37,0.2); }
+.badge-apple { background: rgba(255,255,255,0.06); color: #e0e0e0; border: 1px solid rgba(255,255,255,0.1); }
+.badge-decathlon { background: rgba(0,125,188,0.1); color: #33b3ff; border: 1px solid rgba(0,125,188,0.2); }
+.badge-kitabay { background: rgba(139,69,19,0.1); color: #d2b48c; border: 1px solid rgba(139,69,19,0.2); }

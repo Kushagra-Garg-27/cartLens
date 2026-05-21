@@ -8,7 +8,7 @@ const logger = require("../utils/logger");
 async function enqueueWatchlistedProducts() {
   try {
     const result = await db.query(
-      `SELECT DISTINCT l.url, l.platform
+      `SELECT DISTINCT w.product_id, l.url, l.platform
        FROM watchlist w
        JOIN listings l ON l.product_id = w.product_id
        WHERE NOT EXISTS (
@@ -21,8 +21,8 @@ async function enqueueWatchlistedProducts() {
     let enqueued = 0;
     for (const row of result.rows) {
       await db.query(
-        "INSERT INTO scrape_jobs (listing_url, platform, priority) VALUES ($1, $2, 1)",
-        [row.url, row.platform]
+        "INSERT INTO scrape_jobs (product_id, listing_url, platform, priority) VALUES ($1, $2, $3, 1)",
+        [row.product_id, row.url, row.platform]
       );
       enqueued++;
     }

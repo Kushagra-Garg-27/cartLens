@@ -1,12 +1,4 @@
-/**
- * SmartCompare Pro — BigBasket Scraper (Cheerio — static)
- *
- * Scrapes BigBasket product pages for grocery products.
- * Uses Cheerio for static HTML parsing — no browser needed.
- * Rate limit: 5s between requests.
- */
-
-const cheerio = require("cheerio");
+const { acquireBrowser, releaseBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
 
 /**
@@ -15,46 +7,61 @@ const logger = require("../utils/logger");
  * @returns {Promise<Object>}
  */
 async function scrape(url) {
+  let browser;
+  let page;
   try {
-    // Random delay 5-10s
-    const delay = Math.floor(Math.random() * 5000) + 5000;
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    browser = await acquireBrowser();
+    page = await newStealthPage(browser);
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-IN,en;q=0.9",
-      },
-    });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 
-    if (!response.ok) throw new Error(`BigBasket: HTTP ${response.status}`);
+    // Handle search URLs or if the url is not a product detail page (does not contain /pd/)
+    if (!url.includes("/pd/") || url.includes("/ps/") || url.includes("q=")) {
+      // Wait for product links to render
+      await page.waitForSelector("a[href*='/pd/']", { timeout: 15000 }).catch(() => {});
+      
+      const productUrl = await page.evaluate(() => {
+        // Try various selectors or find any anchor containing /pd/
+        const pdLink = document.querySelector('a[href*="/pd/"]');
+        return pdLink ? pdLink.getAttribute("href") : null;
+      });
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
+      if (!productUrl) throw new Error("BigBasket: No search results found");
+      url = productUrl.startsWith("http") ? productUrl : "https://www.bigbasket.com" + productUrl;
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    }
+
+    // Wait for content to render
+    await page.waitForTimeout(2000);
 
     // Extract title
-    const title = $("h1.prod-name").text().trim()
-      || $(".product-name").text().trim()
-      || $("h1").first().text().trim();
-    if (!title) throw new Error("BigBasket: product title not found");
+    const titleEl = await page.$("h1.prod-name") || await page.$(".product-name") || await page.$("h1");
+    if (!titleEl) throw new Error("BigBasket: product title selector not found");
+    const title = (await titleEl.textContent()).trim();
 
     // Extract price
-    const priceText = $(".discnt-price").text().trim()
-      || $('[qa="final-price"]').text().trim()
-      || $('[class*="price"]').first().text().trim();
-    if (!priceText) throw new Error("BigBasket: price not found");
-    const price = parseInt(priceText.replace(/[^0-9]/g, ""), 10);
-    if (isNaN(price)) throw new Error(`BigBasket: failed to parse price: "${priceText}"`);
+    const priceEl = await page.$(".discnt-price") || await page.$('[qa="final-price"]') || await page.$('[class*="price"]');
+    if (!priceEl) throw new Error("BigBasket: price selector not found");
+    const priceText = await priceEl.textContent();
+    const price = parsePrice(priceText);
 
     // Extract brand
-    const brand = $(".brand-name").text().trim()
-      || $('[class*="brand"]').first().text().trim()
-      || "";
+    let brand = "";
+    const brandEl = await page.$(".brand-name") || await page.$('[class*="brand"]');
+    if (brandEl) {
+      brand = (await brandEl.textContent()).trim();
+    }
 
-    // Availability
-    const soldOut = $('[class*="out-of-stock"], [class*="sold-out"]');
-    const availability = soldOut.length > 0 ? "out_of_stock" : "in_stock";
+    // Extract image URL
+    let imageUrl = "";
+    const imgEl = await page.$(".ProductImage img") || await page.$('[class*="image-container"] img') || await page.$("img");
+    if (imgEl) {
+      imageUrl = await imgEl.getAttribute("src") || "";
+    }
+
+    // Availability — check for sold out / out of stock indicators
+    const soldOutEl = await page.$('[class*="out-of-stock"]') || await page.$('[class*="sold-out"]');
+    const availability = soldOutEl ? "out_of_stock" : "in_stock";
 
     logger.info({
       service: "scraper",
@@ -62,9 +69,10 @@ async function scrape(url) {
       platform: "bigbasket",
     });
 
-    return { title, price, brand, availability, platform: "bigbasket", url };
-  } catch (err) {
-    throw new Error(`BigBasket scraper failed: ${err.message}`);
+    return { title, price, brand, imageUrl, availability, platform: "bigbasket", url };
+  } finally {
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
 }
 

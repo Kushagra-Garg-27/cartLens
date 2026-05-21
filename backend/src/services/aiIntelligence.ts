@@ -253,7 +253,7 @@ Analytics:
 Respond in JSON format: { "summary": "...", "insights": [{"title":"...", "description":"...", "type":"positive|negative|neutral"}] }`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${config.geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${config.geminiApiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

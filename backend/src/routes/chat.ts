@@ -67,7 +67,7 @@ async function streamFromGemini(
   reply: import("fastify").FastifyReply,
   contents: { role: string; parts: { text: string }[] }[],
 ) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${encodeURIComponent(config.geminiApiKey)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${encodeURIComponent(config.geminiApiKey)}`;
 
   const response = await fetch(url, {
     method: "POST",

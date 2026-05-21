@@ -182,7 +182,7 @@
 .sc-product-info { flex: 1; min-width: 0; }
 .sc-product-name {
   font-size: 14px; font-weight: 600; color: var(--sc-text);
-  line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2;
+  line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
   -webkit-box-orient: vertical; overflow: hidden;
 }
 .sc-product-category {
@@ -607,3 +607,37 @@
 .sc-alt-name { font-size: 13px; font-weight: 600; color: var(--sc-text); }
 .sc-alt-reason { font-size: 11px; color: var(--sc-purple); margin-top: 2px; }
 .sc-alt-price { font-size: 14px; font-weight: 700; color: var(--sc-text); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+/* Promos List and Badges */
+.sc-promos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  width: 100%;
+}
+.sc-promo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  width: fit-content;
+  max-width: 100%;
+}
+.sc-promo-badge.coupon {
+  background: rgba(34, 197, 94, 0.08);
+  color: #16a34a;
+  border: 1px dashed rgba(34, 197, 94, 0.25);
+  font-family: monospace;
+  font-weight: 600;
+}
+.sc-promo-badge.bank {
+  background: rgba(59, 130, 246, 0.08);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  word-break: break-word;
+}

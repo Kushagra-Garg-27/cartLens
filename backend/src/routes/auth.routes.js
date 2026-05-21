@@ -12,7 +12,7 @@ const authRateLimiter = createRateLimiter({
 });
 
 // POST /api/auth/register
-router.post("/register", async (req, res) => {
+router.post("/register", authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 

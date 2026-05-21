@@ -1,82 +1,107 @@
-/**
- * SmartCompare Pro — Reliance Digital Scraper (Cheerio — static)
- *
- * Scrapes Reliance Digital product pages for electronics.
- * Uses Cheerio for static HTML parsing — no browser needed.
- * Rate limit: 5s between requests.
- */
-
-const cheerio = require("cheerio");
+const { acquireBrowser, releaseBrowser, newStealthPage, randomDelay, parsePrice } = require("./playwright.base");
 const logger = require("../utils/logger");
 
 /**
- * Scrape Reliance Digital product page.
- * @param {string} url
- * @returns {Promise<Object>}
+ * SmartCompare Pro — Reliance Digital Scraper (Playwright)
+ *
+ * Scrapes Reliance Digital product pages for electronics.
+ * Uses Playwright stealth + shared browser pool for reliable rendering.
  */
 async function scrape(url) {
+  let browser;
+  let page;
   try {
-    // Random delay 5-10s
-    const delay = Math.floor(Math.random() * 5000) + 5000;
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    browser = await acquireBrowser();
+    page = await newStealthPage(browser);
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "en-IN,en;q=0.9",
-      },
-    });
-
-    if (!response.ok) throw new Error(`Reliance Digital: HTTP ${response.status}`);
-
-    const html = await response.text();
-    const $ = cheerio.load(html);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 
     // Handle search URLs
     if (url.includes("/search?q=")) {
-      const firstResult = $("a[href*='/p/']").first();
-      if (firstResult.length === 0) {
-        throw new Error("Reliance Digital: No search results found");
-      }
-      const productUrl = firstResult.attr("href");
-      if (productUrl) {
-        url = productUrl.startsWith("http") ? productUrl : "https://www.reliancedigital.in" + productUrl;
-        return scrape(url);
-      }
+      const queryMatch = url.match(/[?&]q=([^&]+)/);
+      const query = queryMatch ? decodeURIComponent(queryMatch[1]) : "";
+
+      await page.waitForSelector("a[href*='/p/']", { timeout: 15000 }).catch(() => {});
+      
+      const candidates = await page.evaluate(() => {
+        const results = [];
+        const links = document.querySelectorAll("a[href*='/p/']");
+        for (const link of links) {
+          const href = link.getAttribute("href") || "";
+          
+          let titleText = "";
+          const parent = link.closest(".sp__product") || link.parentElement;
+          if (parent) {
+            const nameEl = parent.querySelector(".sp__name, .product-name, h3, h4");
+            if (nameEl) titleText = nameEl.innerText || nameEl.textContent || "";
+          }
+          if (!titleText.trim()) {
+            titleText = link.innerText || link.textContent || "";
+          }
+
+          if (href && titleText.trim() && !results.some(r => r.url === href)) {
+            results.push({ url: href, title: titleText.trim() });
+          }
+        }
+        return results.slice(0, 3);
+      });
+
+      if (!candidates || candidates.length === 0) throw new Error("Reliance Digital: No search results found");
+
+      const { pickBestResult } = require("./scraper.utils");
+      const bestProductUrl = pickBestResult(candidates, query);
+      url = bestProductUrl.startsWith("http") ? bestProductUrl : "https://www.reliancedigital.in" + bestProductUrl;
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     }
 
+    // Wait for the main content to load before extracting
+    await page.waitForSelector(".pdp__product-name, h1.product-name, h1", { timeout: 10000 }).catch(() => {});
+
     // Extract title
-    const title = $(".pdp__product-name").text().trim()
-      || $("h1.product-name").text().trim()
-      || $("h1").first().text().trim();
-    if (!title) throw new Error("Reliance Digital: product title not found");
+    const titleEl = await page.$(".pdp__product-name") || await page.$("h1.product-name") || await page.$("h1");
+    if (!titleEl) throw new Error("Reliance Digital: product title not found");
+    const title = (await titleEl.textContent()).trim();
 
     // Extract price
-    const priceText = $(".final-price").text().trim()
-      || $(".pdp__offer-price").text().trim()
-      || $('[class*="price"]').first().text().trim();
-    if (!priceText) throw new Error("Reliance Digital: price not found");
-    const price = parseInt(priceText.replace(/[^0-9]/g, ""), 10);
-    if (isNaN(price)) throw new Error(`Reliance Digital: failed to parse price: "${priceText}"`);
+    const priceEl = await page.$(".final-price") || await page.$(".pdp__offer-price") || await page.$('[class*="price"]');
+    if (!priceEl) throw new Error("Reliance Digital: price element not found");
+    const priceText = await priceEl.textContent();
+    const price = parsePrice(priceText);
 
     // Extract brand
-    const brand = $(".pdp__brand-name").text().trim()
-      || $('[class*="brand"]').first().text().trim()
-      || "";
+    let brand = "";
+    const brandEl = await page.$(".pdp__brand-name") || await page.$('[class*="brand"]');
+    if (brandEl) {
+      brand = (await brandEl.textContent()).trim();
+    }
 
     // Extract model number from spec table
     let modelNumber = "";
-    $("table tr, .specifications tr, .spec-row").each(function () {
-      const label = $(this).find("td:first-child, th").text().trim().toLowerCase();
-      if (label.includes("model") || label.includes("part number")) {
-        modelNumber = $(this).find("td:last-child").text().trim();
+    const specRows = await page.$$("table tr, .specifications tr, .spec-row, tr");
+    for (const row of specRows) {
+      const label = await row.$("td:first-child, th");
+      const value = await row.$("td:last-child");
+      if (label && value) {
+        const labelText = (await label.textContent()).trim().toLowerCase();
+        if (labelText.includes("model") || labelText.includes("part number")) {
+          modelNumber = (await value.textContent()).trim();
+          break;
+        }
       }
-    });
+    }
 
     // Availability
-    const addToCartBtn = $('[class*="add-to-cart"], button:contains("Add to Cart")');
-    const availability = addToCartBtn.length > 0 ? "in_stock" : "out_of_stock";
+    const pageContent = await page.textContent("body");
+    let availability = "in_stock";
+    if (
+      pageContent.includes("OUT OF STOCK") || 
+      pageContent.includes("Notify Me") || 
+      pageContent.includes("Sold Out") ||
+      pageContent.includes("Out Of Stock") ||
+      pageContent.includes("Sold out")
+    ) {
+      availability = "out_of_stock";
+    }
 
     logger.info({
       service: "scraper",
@@ -87,6 +112,9 @@ async function scrape(url) {
     return { title, price, brand, modelNumber, availability, platform: "reliancedigital", url };
   } catch (err) {
     throw new Error(`Reliance Digital scraper failed: ${err.message}`);
+  } finally {
+    if (page) await page.close().catch(() => {});
+    if (browser) await releaseBrowser(browser);
   }
 }
 

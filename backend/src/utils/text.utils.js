@@ -7,11 +7,36 @@
  */
 
 const STOP_WORDS = new Set([
+  // Generic filler words
   "the", "best", "new", "with", "for", "and", "by", "in", "at", "of", "a", "an",
-  "sale", "buy", "offer", "deal", "india", "official", "original", "genuine",
+  "sale", "buy", "offer", "deal", "official", "original", "genuine",
   "online", "price", "shop", "store", "latest", "exclusive", "limited", "premium",
   "free", "shipping", "delivery", "available", "stock", "combo", "pack",
+  // Colors — high false-positive risk across unrelated products
+  "black", "white", "blue", "red", "green", "silver", "gold", "grey", "gray",
+  "pink", "purple", "orange", "yellow", "brown", "midnight", "starlight",
+  // Product variant / marketing suffixes
+  "pro", "max", "plus", "ultra", "lite", "neo", "se", "mini", "air",
+  // Connectivity / network terms
+  "5g", "4g", "wifi", "lte", "bluetooth",
+  // Generic edition / series labels
+  "edition", "series", "gen", "generation", "version",
+  // Region / market terms
+  "india", "indian", "global",
 ]);
+
+// ── Unit test (inline comment) ───────────────────────────────────────────
+// Before fix (old STOP_WORDS without colors/variants):
+//   tokenize("boAt Airdopes 141 Black")  → ["boat","airdopes","141","black"]
+//   tokenize("Noise Buds VS104 Black")   → ["noise","buds","vs104","black"]
+//   Jaccard = |{black}| / |{boat,airdopes,141,noise,buds,vs104,black}| = 1/7 ≈ 0.14
+//   ...but with weighted scoring on short titles, "black" inflates the score
+//
+// After fix (expanded STOP_WORDS):
+//   tokenize("boAt Airdopes 141 Black")  → ["boat","airdopes","141"]
+//   tokenize("Noise Buds VS104 Black")   → ["noise","buds","vs104"]
+//   Jaccard = |{}| / |{boat,airdopes,141,noise,buds,vs104}| = 0/6 = 0.00
+//   ✅ Correctly rejects the false positive match
 
 /**
  * Weight rules for technical product attributes.
@@ -107,9 +132,9 @@ function tokenizeWeighted(title) {
 function matchScoreWeighted(titleA, brandA, titleB, brandB) {
   // Brand mismatch = instant reject
   if (brandA && brandB) {
-    const ba = brandA.toLowerCase().replace(/[^a-z]/g, "");
-    const bb = brandB.toLowerCase().replace(/[^a-z]/g, "");
-    if (ba && bb && ba !== bb) return 0;
+    const ba = brandA.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const bb = brandB.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (ba && bb && ba !== bb && !ba.includes(bb) && !bb.includes(ba)) return 0;
   }
 
   const tokensA = tokenizeWeighted(titleA);
