@@ -40,7 +40,7 @@ module.exports = {
     categories: ["electronics"],
     scraper: "croma",
     method: "playwright",
-    searchUrl: (query) => `https://www.croma.com/search?q=${encodeURIComponent(query)}`,
+    searchUrl: (query) => `https://www.croma.com/search/?text=${encodeURIComponent(query)}`,
     rateLimit: { min: 5000, max: 10000 },
     tier: 2
   },

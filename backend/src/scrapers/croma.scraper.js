@@ -3,9 +3,15 @@ const logger = require("../utils/logger");
 
 /**
  * Scrape Croma product page using Playwright stealth.
- * Croma uses Next.js SSR and rejects static crawlers, so JS rendering is required.
- * @param {string} url
- * @returns {Promise<Object>}
+ * 
+ * Croma's search API (api.croma.com) is protected by Akamai WAF which blocks
+ * requests from headless browsers and non-browser clients with a 403. The SPA
+ * search page fails to render products because the API call is blocked.
+ *
+ * Strategy:
+ *   - For search URLs: Use Google site-search (site:croma.com) to find matching
+ *     product page URLs, then scrape the product detail page directly.
+ *   - For direct product URLs (/p/NUMBER): Scrape the PDP directly.
  */
 async function scrape(url) {
   let browser;
@@ -15,28 +21,15 @@ async function scrape(url) {
     page = await newStealthPage(browser);
 
     await randomDelay();
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
 
-    // Handle search URLs — click through to the best product
-    if (url.includes("search?q=") && url.includes("croma.com")) {
-      const queryMatch = url.match(/[?&]q=([^&]+)/);
-      const query = queryMatch ? decodeURIComponent(queryMatch[1]) : "";
+    // Handle search URLs — use DuckDuckGo site-search to find Croma product pages
+    if ((url.includes("search?q=") || url.includes("search/?text=")) && url.includes("croma.com")) {
+      const queryMatch = url.match(/[?&](?:q|text)=([^&]+)/);
+      const query = queryMatch ? decodeURIComponent(queryMatch[1].replace(/\+/g, ' ')) : "";
 
-      await page.waitForSelector('a[class*="product-"], a[class*="product-item"], .product-list a', { timeout: 15000 }).catch(() => {});
-
-      const candidates = await page.evaluate(() => {
-        const results = [];
-        const anchors = document.querySelectorAll('a[class*="product-"], a[class*="product-item"], .product-list a, div[class*="product-item"] a');
-        for (const a of anchors) {
-          const h3 = a.querySelector("h3") || a.querySelector('[class*="title"]') || a;
-          const href = a.getAttribute("href") || "";
-          const titleText = h3 ? (h3.innerText || h3.textContent || "") : "";
-          if (href && titleText.trim() && !results.some(r => r.url === href)) {
-            results.push({ url: href, title: titleText.trim() });
-          }
-        }
-        return results.slice(0, 3);
-      });
+      logger.info({ service: "scraper", event: "croma_search_ddg", query });
+      const { searchProductOnDDG } = require("./scraper.utils");
+      const candidates = await searchProductOnDDG(page, "croma.com", query, "/p/");
 
       if (!candidates || candidates.length === 0) throw new Error("Croma: No search results found");
 
@@ -45,20 +38,25 @@ async function scrape(url) {
       const fullUrl = bestProductUrl.startsWith("http")
         ? bestProductUrl
         : "https://www.croma.com" + bestProductUrl;
-      await page.goto(fullUrl, { waitUntil: "networkidle", timeout: 30000 });
+      await page.goto(fullUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
       url = fullUrl;
+    } else {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     }
 
     // Wait for the page content to be available
-    await page.waitForSelector("h1", { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(3000);
 
-    // Extract title — updated selector chain for Croma's Next.js layout
+    // Extract title — try multiple selectors for Croma's various PDP layouts
     const title = await page.evaluate(() => {
       const el =
-        document.querySelector("h1.sc-dkrFOg") ||
-        document.querySelector('h1[class*="product-name"]') ||
-        document.querySelector("h1");
-      return el ? el.innerText.trim() : "";
+        document.querySelector("h1") ||
+        document.querySelector('[class*="product-name"]') ||
+        document.querySelector('[class*="pdp-title"]');
+      if (el) return el.innerText.trim();
+      // Fallback: try meta tag
+      const metaTitle = document.querySelector('meta[property="og:title"]');
+      return metaTitle ? metaTitle.getAttribute("content")?.trim() : "";
     });
     if (!title) throw new Error("Croma: Could not extract product title");
 
@@ -78,7 +76,10 @@ async function scrape(url) {
           if (text && /₹|[0-9]/.test(text)) return text;
         }
       }
-      // Strategy 2: semantic price discovery — find leaf elements with ₹ + digits
+      // Strategy 2: meta tag
+      const metaPrice = document.querySelector('meta[property="product:price:amount"]');
+      if (metaPrice) return "₹" + metaPrice.getAttribute("content");
+      // Strategy 3: semantic price discovery — find leaf elements with ₹ + digits
       const allEls = document.querySelectorAll("div,span,strong,p");
       let best = null;
       let bestLen = Infinity;
@@ -108,7 +109,6 @@ async function scrape(url) {
 
     // Extract model number from spec/details table
     const modelNumber = await page.evaluate(() => {
-      // Try spec table rows with "Model" label
       const rows = document.querySelectorAll(
         '[class*="spec"] tr, [class*="detail"] tr, table tr, .specifications tr'
       );
@@ -121,7 +121,6 @@ async function scrape(url) {
           }
         }
       }
-      // Fallback: scan list items or divs with key-value structure
       const items = document.querySelectorAll("li, [class*='spec'] div");
       for (const item of items) {
         const text = (item.textContent || "").trim();

@@ -31,7 +31,7 @@ router.post("/", authMiddleware, async (req, res) => {
       `INSERT INTO watchlist (user_id, product_id, target_price)
        VALUES ($1, $2, $3)
        ON CONFLICT (user_id, product_id)
-       DO UPDATE SET target_price = EXCLUDED.target_price
+       DO UPDATE SET target_price = EXCLUDED.target_price, last_alerted_at = NULL
        RETURNING id, product_id, target_price, created_at`,
       [req.userId, product_id, target_price || null]
     );
@@ -54,6 +54,59 @@ router.post("/", authMiddleware, async (req, res) => {
 
     // Immediately enqueue priority=1 scrape jobs for this product
     await jobEnqueuer.enqueueForProduct(product_id, 1);
+
+    // Check if we should trigger an instant price alert
+    if (target_price !== undefined && target_price !== null) {
+      const targetVal = parseFloat(target_price);
+      if (!isNaN(targetVal)) {
+        // Find the lowest current price across comparisons
+        const listingsRes = await db.query(
+          `SELECT platform, current_price, url FROM listings
+           WHERE product_id = $1 AND current_price IS NOT NULL
+           ORDER BY current_price ASC LIMIT 1`,
+          [product_id]
+        );
+        if (listingsRes.rows.length > 0) {
+          const lowestListing = listingsRes.rows[0];
+          const lowestPrice = parseFloat(lowestListing.current_price);
+          if (targetVal >= lowestPrice) {
+            // Get user email
+            const userRes = await db.query("SELECT email FROM users WHERE id = $1", [req.userId]);
+            // Get product details
+            const prodRes = await db.query("SELECT canonical_name FROM products WHERE id = $1", [product_id]);
+            
+            if (userRes.rows.length > 0 && prodRes.rows.length > 0) {
+              const userEmail = userRes.rows[0].email;
+              const productName = prodRes.rows[0].canonical_name;
+              
+              const alertService = require("../services/alert.service");
+              alertService.sendAISmartAlert({
+                userEmail,
+                productId: product_id,
+                productName,
+                platform: lowestListing.platform,
+                oldPrice: lowestPrice,
+                newPrice: lowestPrice,
+                targetPrice: targetVal,
+                buyUrl: lowestListing.url
+              }).catch(e => {
+                logger.error({
+                  service: "api",
+                  event: "instant_alert_send_error",
+                  error: e.message
+                });
+              });
+
+              // Mark as alerted immediately to prevent duplicate cron notifications
+              await db.query(
+                "UPDATE watchlist SET last_alerted_at = NOW() WHERE user_id = $1 AND product_id = $2",
+                [req.userId, product_id]
+              );
+            }
+          }
+        }
+      }
+    }
 
     logger.info({
       service: "api",

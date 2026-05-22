@@ -165,7 +165,7 @@ async function newStealthPage(browser) {
     ? agents[Math.floor(Math.random() * agents.length)]
     : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-  const page = await browser.newPage();
+  const page = await browser.newPage({ userAgent: ua });
   await page.setViewportSize({
     width: Math.floor(Math.random() * 720) + 1200,
     height: Math.floor(Math.random() * 380) + 700,
@@ -195,6 +195,33 @@ async function randomDelay() {
 function parsePrice(priceStr) {
   if (!priceStr) throw new Error("Price string is empty or null");
   let cleaned = String(priceStr).trim();
+  
+  // If it's a dual price containing a monthly plan and a full price (e.g. on Apple Store)
+  if (cleaned.includes("/mo") || cleaned.includes("month") || cleaned.includes("EMI")) {
+    const parts = cleaned.split(/\bor\b/i);
+    // Find the part that does not have '/mo' or 'month' or 'EMI'
+    const fullPricePart = parts.find(p => !p.includes("/mo") && !p.includes("month") && !p.includes("EMI"));
+    if (fullPricePart) {
+      cleaned = fullPricePart.trim();
+    }
+  }
+
+  // Strategy 1: Find the first price-like sequence (digits with potential commas and optional decimal)
+  // Optionally prefixed with currency symbol
+  const matchObj = cleaned.match(/(?:₹|Rs\.?|INR)?\s*([0-9]{1,3}(?:,[0-9]{2,3})+(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/i);
+  if (matchObj) {
+    let pricePart = matchObj[1];
+    // Remove commas
+    pricePart = pricePart.replace(/,/g, "");
+    // Remove trailing decimal part if present
+    if (pricePart.includes(".")) {
+      pricePart = pricePart.split(".")[0];
+    }
+    const num = parseInt(pricePart, 10);
+    if (!isNaN(num)) return num;
+  }
+
+  // Strategy 2: Fallback to digits extraction from the prefix of the string
   const parts = cleaned.split(/(?:MRP|mrp|Off|off|Save|save|Discount|discount|%)/i);
   if (parts.length > 0) {
     cleaned = parts[0];

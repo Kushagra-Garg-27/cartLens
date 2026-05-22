@@ -76,7 +76,7 @@ const STORES: StoreConfig[] = [
     region: "IN",
     enabled: true,
     logo: "croma",
-    searchUrlTemplate: "https://www.croma.com/searchB?q={query}",
+    searchUrlTemplate: "https://www.croma.com/search/?text={query}",
     productUrlPatterns: [/\/p\/\d+/, /croma\.com\/[^/]+-\d+/],
     deliveryInfo: "Free delivery available",
     returnPolicy: "14-day return policy",

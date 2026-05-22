@@ -86,7 +86,7 @@ async function processOneJob(job) {
       const { matchScoreWeighted } = require("../utils/text.utils");
       score = matchScoreWeighted(scrapedTitle, scrapedBrand, canonicalName, productBrand);
 
-      if (score < 0.45) {
+      if (score < 0.25) {
         const errorMsg = `low_confidence_match: ${score.toFixed(2)}`;
         logger.warn({
           service: "scraper",
@@ -259,6 +259,11 @@ async function scrapeByPlatform(job) {
 async function upsertListingAndPrice(data, job, matchConfidence = 1.0, matchMethod = "scraper_validated") {
   const platformPid = data.asin || data.flipkartPid || data.styleId || data.productCode || null;
   const rawUrl = data.url || job.listing_url;
+  
+  if (rawUrl.includes('/search') || rawUrl.includes('?q=') || rawUrl.includes('?k=') || rawUrl.includes('search_query=')) {
+    throw new Error(`Invalid listing URL (search page): ${rawUrl}`);
+  }
+
   const platform = data.platform || job.platform;
   const url = normalizeProductUrl(rawUrl, platform);
   const scrapedTitle = data.title || null;

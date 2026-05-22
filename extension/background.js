@@ -73,6 +73,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       return true;
 
+    case "OPEN_TAB":
+      chrome.tabs.create({ url: message.url, active: true });
+      sendResponse({ success: true });
+      return true;
+
     case "OBSERVE":
       handleObserve(message.payload)
         .then(() => sendResponse({ success: true }))

@@ -6,6 +6,13 @@ const logger = require("../utils/logger");
  *
  * Scrapes Reliance Digital product pages for electronics.
  * Uses Playwright stealth + shared browser pool for reliable rendering.
+ * 
+ * Reliance Digital is a Vue.js SPA. Direct URL navigation to /search?q= returns 404.
+ * Instead we:
+ *   1. Navigate to the homepage first to bootstrap the SPA
+ *   2. Use the search input to type the query and press Enter
+ *   3. Wait for product cards to render
+ *   4. Extract product links from the results (format: /product/...)
  */
 async function scrape(url) {
   let browser;
@@ -14,43 +21,28 @@ async function scrape(url) {
     browser = await acquireBrowser();
     page = await newStealthPage(browser);
 
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-
-    // Handle search URLs
-    if (url.includes("/search?q=")) {
+    // Handle search URLs — use DuckDuckGo site-search to find Reliance Digital product pages
+    if (url.includes("/search?q=") || url.includes("/products?q=") || url.includes("search?q=")) {
       const queryMatch = url.match(/[?&]q=([^&]+)/);
-      const query = queryMatch ? decodeURIComponent(queryMatch[1]) : "";
+      const query = queryMatch ? decodeURIComponent(queryMatch[1].replace(/\+/g, ' ')) : "";
 
-      await page.waitForSelector("a[href*='/p/']", { timeout: 15000 }).catch(() => {});
-      
-      const candidates = await page.evaluate(() => {
-        const results = [];
-        const links = document.querySelectorAll("a[href*='/p/']");
-        for (const link of links) {
-          const href = link.getAttribute("href") || "";
-          
-          let titleText = "";
-          const parent = link.closest(".sp__product") || link.parentElement;
-          if (parent) {
-            const nameEl = parent.querySelector(".sp__name, .product-name, h3, h4");
-            if (nameEl) titleText = nameEl.innerText || nameEl.textContent || "";
-          }
-          if (!titleText.trim()) {
-            titleText = link.innerText || link.textContent || "";
-          }
-
-          if (href && titleText.trim() && !results.some(r => r.url === href)) {
-            results.push({ url: href, title: titleText.trim() });
-          }
-        }
-        return results.slice(0, 3);
-      });
+      logger.info({ service: "scraper", event: "reliancedigital_search_ddg", query });
+      const { searchProductOnDDG } = require("./scraper.utils");
+      const candidates = await searchProductOnDDG(page, "reliancedigital.in", query, "/product/");
 
       if (!candidates || candidates.length === 0) throw new Error("Reliance Digital: No search results found");
 
       const { pickBestResult } = require("./scraper.utils");
       const bestProductUrl = pickBestResult(candidates, query);
-      url = bestProductUrl.startsWith("http") ? bestProductUrl : "https://www.reliancedigital.in" + bestProductUrl;
+      if (!bestProductUrl) throw new Error("Reliance Digital: No good product matches found");
+      
+      const fullUrl = bestProductUrl.startsWith("http")
+        ? bestProductUrl
+        : "https://www.reliancedigital.in" + bestProductUrl;
+      
+      await page.goto(fullUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+      url = fullUrl;
+    } else {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
     }
 

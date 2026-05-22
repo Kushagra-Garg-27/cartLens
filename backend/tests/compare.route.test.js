@@ -222,6 +222,121 @@ describe("POST /api/compare", () => {
   });
 });
 
+describe("GET /api/compare/poll/:product_id", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("returns 401 without auth token", async () => {
+    const res = await request(app)
+      .get("/api/compare/poll/some-product-id");
+
+    expect(res.status).toBe(401);
+  });
+
+  test("returns found if results has multiple listings", async () => {
+    const productId = "660e8400-e29b-41d4-a716-446655440001";
+    const listingId1 = "770e8400-e29b-41d4-a716-446655440001";
+    const listingId2 = "770e8400-e29b-41d4-a716-446655440002";
+
+    db.query.mockImplementation(async (sql, params) => {
+      const queryStr = sql.toLowerCase();
+      if (queryStr.includes("from listings") && queryStr.includes("product_id = $1")) {
+        return {
+          rows: [
+            {
+              listing_id: listingId1,
+              platform: "amazon",
+              url: "https://amazon.in/dp/B0TEST1234",
+              current_price: "12999.00",
+              currency: "INR",
+              availability: "in_stock",
+              last_scraped_at: new Date().toISOString(),
+            },
+            {
+              listing_id: listingId2,
+              platform: "flipkart",
+              url: "https://flipkart.com/p/itm123",
+              current_price: "12499.00",
+              currency: "INR",
+              availability: "in_stock",
+              last_scraped_at: new Date().toISOString(),
+            }
+          ],
+        };
+      }
+      if (queryStr.includes("from products") && queryStr.includes("id = $1")) {
+        return {
+          rows: [{
+            canonical_name: "Test Product",
+            brand: "Test Brand",
+            category: "electronics",
+          }],
+        };
+      }
+      if (queryStr.includes("from user_platform_affinity")) {
+        return { rows: [] };
+      }
+      return { rows: [] };
+    });
+
+    const res = await request(app)
+      .get(`/api/compare/poll/${productId}`)
+      .set("Authorization", `Bearer ${testToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("found");
+    expect(res.body.partial).toBe(false);
+    expect(res.body.results).toHaveLength(2);
+  });
+
+  test("returns partial if 1 listing exists and scrape jobs are pending/running", async () => {
+    const productId = "660e8400-e29b-41d4-a716-446655440001";
+    const listingId1 = "770e8400-e29b-41d4-a716-446655440001";
+
+    db.query.mockImplementation(async (sql, params) => {
+      const queryStr = sql.toLowerCase();
+      if (queryStr.includes("from listings") && queryStr.includes("product_id = $1")) {
+        return {
+          rows: [
+            {
+              listing_id: listingId1,
+              platform: "amazon",
+              url: "https://amazon.in/dp/B0TEST1234",
+              current_price: "12999.00",
+              currency: "INR",
+              availability: "in_stock",
+              last_scraped_at: new Date().toISOString(),
+            }
+          ],
+        };
+      }
+      if (queryStr.includes("from scrape_jobs") && queryStr.includes("status in ('pending', 'running')")) {
+        return {
+          rows: [{ cnt: "1" }],
+        };
+      }
+      if (queryStr.includes("from products") && queryStr.includes("id = $1")) {
+        return {
+          rows: [{
+            canonical_name: "Test Product",
+          }],
+        };
+      }
+      return { rows: [] };
+    });
+
+    const res = await request(app)
+      .get(`/api/compare/poll/${productId}`)
+      .set("Authorization", `Bearer ${testToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("partial");
+    expect(res.body.partial).toBe(true);
+    expect(res.body.results).toHaveLength(1);
+  });
+});
+
 describe("GET /api/health", () => {
   test("returns status ok with db connected", async () => {
     db.healthCheck.mockResolvedValue(true);

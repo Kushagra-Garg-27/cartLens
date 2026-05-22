@@ -519,9 +519,15 @@ function injectPanel(){
   if(document.getElementById('scp-panel'))return;
   loadPanelCSS();
   var p=document.createElement('div');p.id='scp-panel';p.className='sc-panel';
-  p.innerHTML='<header class="sc-header"><div class="sc-header-left"><button class="sc-back-btn" title="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg></button><div class="sc-logo-group"><div class="sc-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><span class="sc-logo-text">SmartCompare</span><span class="sc-pro-badge">PRO</span></div></div><div class="sc-header-right"><div id="scp-live-dot" style="width:8px;height:8px;border-radius:50%;background:#ccc;transition:all .3s" title="Checking..."></div><button class="sc-header-btn" id="scp-close-btn" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></header><div class="sc-content" id="scp-content"><div id="scp-product-area"></div><div id="scp-main-content"></div></div><nav class="sc-bottom-nav"><button class="sc-nav-item active" data-tab="compare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg><span class="sc-nav-label">Compare</span></button><button class="sc-nav-item" data-tab="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9m-4.27 13a2 2 0 01-3.46 0"/></svg><span class="sc-nav-label">Alerts</span></button><button class="sc-nav-item" data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="sc-nav-label">History</span></button><button class="sc-nav-item" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="sc-nav-label">Settings</span></button></nav>';
+  p.innerHTML='<header class="sc-header"><div class="sc-header-left"><button class="sc-back-btn" title="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0l7 7m-7-7l7-7"/></svg></button><div class="sc-logo-group"><div class="sc-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div><span class="sc-logo-text">SmartCompare</span><span class="sc-pro-badge">PRO</span></div></div><div class="sc-header-right"><button class="sc-header-btn" id="scp-refresh-btn" title="Refresh Prices"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button><div id="scp-live-dot" style="width:8px;height:8px;border-radius:50%;background:#ccc;transition:all .3s" title="Checking..."></div><button class="sc-header-btn" id="scp-close-btn" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div></header><div class="sc-content" id="scp-content"><div id="scp-product-area"></div><div id="scp-main-content"></div></div><nav class="sc-bottom-nav"><button class="sc-nav-item active" data-tab="compare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg><span class="sc-nav-label">Compare</span></button><button class="sc-nav-item" data-tab="alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9m-4.27 13a2 2 0 01-3.46 0"/></svg><span class="sc-nav-label">Alerts</span></button><button class="sc-nav-item" data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="sc-nav-label">History</span></button><button class="sc-nav-item" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="sc-nav-label">Settings</span></button></nav>';
   document.body.appendChild(p);
   document.getElementById('scp-close-btn').addEventListener('click',function(){hidePanel()});
+  var refreshBtn = document.getElementById('scp-refresh-btn');
+  if(refreshBtn) refreshBtn.addEventListener('click', function(){
+    if(!cachedData) return;
+    refreshBtn.style.animation = 'sc-spin 1s linear infinite';
+    runComparison(false, true); // Force refresh
+  });
   p.querySelectorAll('.sc-nav-item').forEach(function(n){n.addEventListener('click',function(){
     p.querySelectorAll('.sc-nav-item').forEach(function(x){x.classList.remove('active')});n.classList.add('active');
     var tab=n.dataset.tab;
@@ -855,110 +861,240 @@ function renderProductCard(d){
   el.innerHTML='<div class="sc-product-card"><div class="sc-product-img"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div><div class="sc-product-info"><div class="sc-product-name">'+title+'</div><div class="sc-product-category">'+platName+'</div>'+(isOutOfStock?'<div style="font-size:14px;font-weight:600;color:#ef4444;margin-top:4px">Currently Unavailable</div>':(price?'<div style="font-size:16px;font-weight:700;color:#7c5cfc;margin-top:4px">'+fmtINR(price)+'</div>':''))+'<div class="sc-ai-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> '+badgeText+'</div></div></div>';
 }
 
+let currentSortBy = 'effective';
+
 function renderCompareSection(d){
   var el=document.getElementById('scp-compare-sec');if(!el)return;
-  var results=d.results||[];var ps=d.price_stats||{};
+  var allResults=d.results||[];
+  var ps=d.price_stats||{};
   
   var currPlatform=detectPlatform();var currPrice=0;
-  if(results){
-    for(var ci=0;ci<results.length;ci++){
-      if(results[ci].match_confidence>=1||(currPlatform&&results[ci].platform&&results[ci].platform.indexOf(currPlatform.split('.')[0])>=0)){
-        currPrice=results[ci].price;break;
+  if(allResults){
+    for(var ci=0;ci<allResults.length;ci++){
+      if(allResults[ci].match_confidence>=1||(currPlatform&&allResults[ci].platform&&allResults[ci].platform.indexOf(currPlatform.split('.')[0])>=0)){
+        currPrice=allResults[ci].price;break;
       }
     }
   }
-  if(!currPrice&&results[0])currPrice=results[0].price;
+  if(!currPrice&&allResults[0])currPrice=allResults[0].price;
 
-  // Stale platforms detection
+  // Filter out search URLs (deep links only) and deduplicate domains
+  var results = [];
+  var seenDomains = new Set();
+  
+  for (var i = 0; i < allResults.length; i++) {
+    var r = allResults[i];
+    var isSearchUrl = r.url && (r.url.includes('/s?k=') || r.url.includes('search?q=') || r.url.includes('/search/') || r.url.includes('/search?'));
+    if (isSearchUrl) continue;
+    
+    var domainKey = null;
+    try {
+      if (r.url) {
+        domainKey = new URL(r.url).hostname.replace('www.', '');
+      } else {
+        domainKey = r.platform;
+      }
+    } catch(e) {
+      domainKey = r.platform;
+    }
+    
+    if (seenDomains.has(domainKey)) continue;
+    seenDomains.add(domainKey);
+    results.push(r);
+  }
+
+  // Handle fallback if 0 external stores found
+  var externalCount = results.filter(r => !(currPlatform && r.platform && r.platform.indexOf(currPlatform.split('.')[0]) >= 0)).length;
+  if (externalCount === 0 && d.status !== 'queued' && d.status !== 'partial') {
+    el.innerHTML = '<div class="sc-section"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">1.</span><span class="sc-section-title">Compare across websites</span></div></div><div style="text-align:center;padding:40px 24px"><div style="font-size:36px;margin-bottom:12px">🔍</div><div style="font-size:15px;font-weight:600;color:#1a1a2e">We couldn\'t find this product on other stores right now.</div><div style="font-size:13px;color:#64668b;margin-top:8px">Try refreshing or checking back later.</div></div></div>';
+    return;
+  }
+
+  // Stale platforms
   var stalePlatforms = [];
+  var globalFreshnessText = 'Just now';
+  var oldestAgeMs = 0;
   for (var i = 0; i < results.length; i++) {
     var r = results[i];
+    if (r.last_scraped_at) {
+      var age = Date.now() - new Date(r.last_scraped_at).getTime();
+      if (age > oldestAgeMs) oldestAgeMs = age;
+    }
     if (r.ageWarning) {
       var platKey=null; var keys=Object.keys(PLATFORMS);
       for(var ki=0;ki<keys.length;ki++){if(r.platform&&r.platform.toLowerCase().indexOf(keys[ki].split('.')[0])>=0){platKey=keys[ki];break;}}
       platKey=platKey||r.platform;
       var name = PLATFORMS[platKey] ? PLATFORMS[platKey].name : r.platform;
-      if (stalePlatforms.indexOf(name) === -1) {
-        stalePlatforms.push(name);
-      }
+      if (stalePlatforms.indexOf(name) === -1) stalePlatforms.push(name);
     }
   }
+  if (oldestAgeMs > 60000) globalFreshnessText = Math.floor(oldestAgeMs / 60000) + ' min ago';
 
   var staleBannerHtml = '';
   if (stalePlatforms.length > 0) {
-    staleBannerHtml = '<div class="sc-stale-banner">⚠️ Prices for ' + stalePlatforms.join(', ') + ' may be outdated. Refreshing in background...</div>';
+    staleBannerHtml = '<div class="sc-stale-banner">⚠️ Prices for ' + stalePlatforms.join(', ') + ' may be outdated. Refreshing...</div>';
   }
 
-  var h='<div class="sc-section"><div class="sc-section-header"><div style="display:flex;align-items:center"><span class="sc-section-num">1.</span><span class="sc-section-title">Compare across websites</span></div><span class="sc-result-count">'+results.length+' results</span></div>' + staleBannerHtml + '<div class="sc-compare-list">';
+  // Calculate effective price and max MRP for discount display
+  var maxPrice = 0;
+  for (var i = 0; i < results.length; i++) {
+    if (results[i].price > maxPrice) maxPrice = results[i].price;
+  }
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var maxDiscount = 0;
+    if (r.coupon_codes) {
+      r.coupon_codes.forEach(function(c) {
+        var disc = c.isPercent ? (r.price * c.discount / 100) : c.discount;
+        if (disc > maxDiscount) maxDiscount = disc;
+      });
+    }
+    r.calculated_effective_price = Math.max(0, r.price - maxDiscount);
+  }
+
+  results.sort(function(a, b) {
+    if (currentSortBy === 'effective') {
+      return a.calculated_effective_price - b.calculated_effective_price;
+    } else {
+      return a.price - b.price;
+    }
+  });
+
+  var sortToggleHtml = '<div class="sc-sort-toggle"><label class="sc-sort-label"><input type="radio" name="scp_sort" value="effective" ' + (currentSortBy === 'effective' ? 'checked' : '') + '> <span>Effective Price</span></label><label class="sc-sort-label"><input type="radio" name="scp_sort" value="listed" ' + (currentSortBy === 'listed' ? 'checked' : '') + '> <span>Listed Price</span></label></div>';
+
+  // Platform metadata for subtitles & 2-letter abbreviations
+  var PLAT_META = {
+    'amazon': { abbr: 'AM', subtitle: 'Fast delivery · Prime eligible' },
+    'flipkart': { abbr: 'FK', subtitle: 'SuperCoins eligible' },
+    'croma': { abbr: 'CR', subtitle: 'Electronics specialist' },
+    'reliancedigital': { abbr: 'RD', subtitle: 'Reliance rewards' },
+    'vijaysales': { abbr: 'VS', subtitle: 'Electronics retailer' },
+    'myntra': { abbr: 'M', subtitle: 'Free delivery · Easy returns 30d' },
+    'ajio': { abbr: 'AJ', subtitle: 'Big Bold Sale price' },
+    'nykaa': { abbr: 'NK', subtitle: 'Beauty specialist' },
+    'tatacliq': { abbr: 'TC', subtitle: 'Authentic guarantee' },
+    'apple': { abbr: 'AP', subtitle: 'Official store · AppleCare' },
+    'firstcry': { abbr: 'FC', subtitle: 'Kids specialist' },
+    'blinkit': { abbr: 'BL', subtitle: 'Quick delivery' },
+    'bigbasket': { abbr: 'BB', subtitle: 'Grocery specialist' },
+    'decathlon': { abbr: 'DK', subtitle: 'Sports specialist' },
+    'kitabay': { abbr: 'KB', subtitle: 'Books specialist' }
+  };
+
+  var h='<div class="sc-section"><div class="sc-section-header" style="justify-content:space-between"><div style="display:flex;align-items:center"><span class="sc-section-num">1.</span><span class="sc-section-title">Compare across websites</span></div><span class="sc-result-count">' + results.length + ' stores</span></div>' + sortToggleHtml + staleBannerHtml + '<div class="sc-compare-list-v2">';
+  
   var prices=results.filter(function(r){return r.price}).map(function(r){return r.price});
   var best=prices.length>0?Math.min.apply(null,prices):0;
+
   for(var i=0;i<results.length;i++){
     var r=results[i];
     var platKey=null;var keys=Object.keys(PLATFORMS);
     for(var ki=0;ki<keys.length;ki++){if(r.platform&&r.platform.toLowerCase().indexOf(keys[ki].split('.')[0])>=0){platKey=keys[ki];break;}}
     platKey=platKey||r.platform;
     var pi=PLATFORMS[platKey]||{name:r.platform,cls:'',tier:3};
-    var colors={amazon:'#FF9900',flipkart:'#2874F0',myntra:'#FF3F6C',ajio:'#E31837',apple:'#555',croma:'#65AC2A',vijaysales:'#E21F26',reliancedigital:'#1B3A8E',nykaa:'#FC2779'};
+    var colors={amazon:'#FF9900',flipkart:'#2874F0',myntra:'#FF3F6C',ajio:'#E31837',apple:'#555',croma:'#65AC2A',vijaysales:'#E21F26',reliancedigital:'#1B3A8E',nykaa:'#FC2779',tatacliq:'#7c5cfc',firstcry:'#FF7043',blinkit:'#F5C200',bigbasket:'#84C225',decathlon:'#007DBC',kitabay:'#8B4513'};
     var color=colors[pi.cls]||'#7c5cfc';
     var isBest=r.price===best&&results.length>1;
-    var conf=r.match_confidence!=null?r.match_confidence:1;
-    var confBadge=conf>=1?'<span class="sc-conf-badge exact">Exact</span>':'<span class="sc-conf-badge likely">Likely '+(conf*100|0)+'%</span>';
-    var fc=freshnessClass(r.last_scraped_at);
-    var freshBadge='<span class="sc-fresh-badge '+fc+'">'+timeAgo(r.last_scraped_at)+'</span>';
-    var d2cBadge=pi.d2c?'<span class="sc-d2c-badge">Official Store</span>':'';
-    var affinityBadge=(r.affinityBoost&&r.affinityBoost>0.6)?'<span style="display:inline-block;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600;color:#f59e0b;background:rgba(245,158,11,0.1);margin-left:4px">\u2b50 Your pick</span>':'';
-    var dealTags=computeDealTags(r,ps,results);
-    var dealHtml='';for(var di=0;di<dealTags.length;di++){dealHtml+='<span class="sc-deal-tag '+dealTags[di].toLowerCase().replace(/ /g,'-')+'">'+dealTags[di]+'</span>';}
+    var isCurrentStore = (currPlatform && r.platform && r.platform.indexOf(currPlatform.split('.')[0]) >= 0);
     
-    // Promos & coupon codes mapping
-    var promosHtml = '';
-    var couponCodes = r.coupon_codes || [];
+    // Get platform meta
+    var meta = PLAT_META[pi.cls] || { abbr: (pi.name||'?').substring(0,2).toUpperCase(), subtitle: '' };
+    
+    // Build subtitle line
+    var subtitleParts = [];
+    if (isCurrentStore) subtitleParts.push('<span style="color:#22c55e;font-weight:600">You\'re here</span>');
+    if (pi.d2c) subtitleParts.push('Official store');
+    if (meta.subtitle && !isCurrentStore) subtitleParts.push(meta.subtitle);
+    var subtitleHtml = subtitleParts.length > 0 ? '<div class="sc-card-subtitle">' + subtitleParts.join(' · ') + '</div>' : '';
+    
+    // Bank offer line (first one only, compact)
+    var bankOfferHtml = '';
     var bankOffers = r.bank_offers || [];
+    var couponCodes = r.coupon_codes || [];
+    if (bankOffers.length > 0) {
+      // Extract the most prominent offer
+      var offerText = bankOffers[0];
+      // Shorten if too long
+      if (offerText.length > 50) offerText = offerText.substring(0, 47) + '...';
+      bankOfferHtml = '<div class="sc-card-bank-offer">💳 ' + offerText + '</div>';
+    } else if (couponCodes.length > 0) {
+      var c = couponCodes[0];
+      var discText = c.isPercent ? c.discount + '% off' : '₹' + c.discount + ' off';
+      bankOfferHtml = '<div class="sc-card-bank-offer">🏷️ ' + discText + ' with coupon ' + c.code + '</div>';
+    }
     
-    if (couponCodes.length > 0 || bankOffers.length > 0) {
-      promosHtml += '<div class="sc-promos-list">';
-      
-      couponCodes.forEach(function(coupon) {
-        var discText = coupon.isPercent ? coupon.discount + '%' : fmtINR(coupon.discount);
-        promosHtml += '<div class="sc-promo-badge coupon" title="' + (coupon.text || '') + '">🏷️ ' + coupon.code + ' (-' + discText + ')</div>';
-      });
-      
-      var visibleBankOffers = bankOffers.slice(0, 2);
-      visibleBankOffers.forEach(function(offer) {
-        promosHtml += '<div class="sc-promo-badge bank" title="' + offer + '">💳 ' + offer + '</div>';
-      });
-      
-      if (bankOffers.length > 2) {
-        promosHtml += '<div class="sc-promo-badge bank" style="opacity: 0.7; font-style: italic;" title="' + bankOffers.slice(2).join('\n') + '">💳 +' + (bankOffers.length - 2) + ' more bank offers</div>';
-      }
-      
-      promosHtml += '</div>';
+    // Price column — matches reference image exactly
+    var mrpHtml = '';
+    var discPercentHtml = '';
+    var effHtml = '';
+    
+    // Show MRP strikethrough if current price differs from max price across stores
+    if (currPrice && r.price < currPrice) {
+      mrpHtml = '<div class="sc-card-mrp">' + fmtINR(currPrice) + '</div>';
+      var discPct = Math.round((1 - (r.price / currPrice)) * 100);
+      if (discPct > 0) discPercentHtml = '<div class="sc-card-discount">' + discPct + '% off</div>';
+    }
+    
+    var mainPriceHtml = '<div class="sc-card-price">' + fmtINR(r.price) + '</div>';
+    
+    // Effective price after coupon/bank offer
+    if (r.calculated_effective_price < r.price) {
+      effHtml = '<div class="sc-card-effective">Eff. ' + fmtINR(r.calculated_effective_price) + '</div>';
+    }
+    
+    // Deal tags
+    var dealTags=computeDealTags(r,ps,results);
+    var dealHtml='';
+    if(isBest) dealHtml += '<span class="sc-card-best-tag">BEST PRICE</span>';
+    for(var di=0;di<dealTags.length;di++){
+      if(dealTags[di] !== 'BEST DEAL') dealHtml+='<span class="sc-deal-tag '+dealTags[di].toLowerCase().replace(/ /g,'-')+'">'+dealTags[di]+'</span>';
     }
 
-    // Effective Price rendering
-    var priceHtml = '';
-    var finalPrice = (r.effective_price && r.effective_price < r.price) ? r.effective_price : r.price;
-    if (r.effective_price && r.effective_price < r.price) {
-      priceHtml = '<div class="sc-price-original" style="text-decoration: line-through; font-size: 11px; color: var(--sc-text-tertiary);">' + fmtINR(r.price) + '</div>' +
-                  '<div class="sc-price-main" style="color: var(--sc-green);">' + fmtINR(r.effective_price) + '</div>';
-    } else {
-      priceHtml = '<div class="sc-price-main">' + fmtINR(r.price) + '</div>';
-    }
-
-    var saveHtml='';
-    if(currPrice && finalPrice && finalPrice < currPrice){
-      var saved = currPrice - finalPrice;
-      var pct = ((saved / currPrice) * 100).toFixed(1);
-      saveHtml = '<div class="sc-savings">Save ' + fmtINR(saved) + ' (' + pct + '%)</div>';
-    }
-
-    h+='<a class="sc-compare-card'+(isBest?' best':'')+'" href="'+(r.url||'#')+'" target="_blank" data-platform="'+r.platform+'" data-price="'+(r.price||'')+'" style="animation-delay:'+i*0.06+'s"><div class="sc-store-logo" style="background:'+color+'">'+(pi.name?pi.name[0]:'?')+'</div><div class="sc-store-info"><div class="sc-store-name">'+pi.name+'</div><div class="sc-store-meta">'+confBadge+freshBadge+d2cBadge+affinityBadge+'</div><div class="sc-deal-tags">'+dealHtml+'</div>' + promosHtml + '</div><div class="sc-price-col">' + priceHtml + saveHtml + (isBest?'<div class="sc-best-pill">Best Price</div>':'')+'</div><svg class="sc-compare-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></a>';
+    h += '<div class="sc-card-v2' + (isBest ? ' best' : '') + (isCurrentStore ? ' current' : '') + '" data-platform="' + r.platform + '" data-price="' + (r.price||'') + '" style="animation-delay:' + i*0.06 + 's">';
+    h += '<div class="sc-card-left">';
+    h += '<div class="sc-card-logo" style="background:' + color + '">' + meta.abbr + '</div>';
+    h += '<div class="sc-card-info">';
+    h += '<div class="sc-card-name">' + pi.name + '</div>';
+    h += subtitleHtml;
+    h += bankOfferHtml;
+    if (dealHtml) h += '<div class="sc-deal-tags" style="margin-top:4px">' + dealHtml + '</div>';
+    h += '</div>';
+    h += '</div>';
+    h += '<div class="sc-card-right">';
+    h += mrpHtml;
+    h += mainPriceHtml;
+    h += discPercentHtml;
+    h += effHtml;
+    h += '<button class="sc-visit-btn-v2" data-url="' + r.url + '">Visit ↗</button>';
+    h += '</div>';
+    h += '</div>';
   }
   h+='</div></div>';
   el.innerHTML=h;
-  // -- Ranker: track platform clicks for personalized ranking --
+  
+  // Attach visit button listeners
+  el.querySelectorAll('.sc-visit-btn-v2').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      e.preventDefault();
+      var url = btn.getAttribute('data-url');
+      if (url) {
+        msg({type: 'OPEN_TAB', url: url});
+      }
+    });
+  });
+
+  // Attach sort toggle listeners
+  el.querySelectorAll('input[name="scp_sort"]').forEach(function(input){
+    input.addEventListener('change', function(e){
+      currentSortBy = e.target.value;
+      renderCompareSection(d);
+    });
+  });
+
+  // Ranker: track platform clicks
   if(d.product_id){
-    el.querySelectorAll('.sc-compare-card').forEach(function(card){
+    el.querySelectorAll('.sc-card-v2').forEach(function(card){
       card.addEventListener('click',function(){
         var plat=card.getAttribute('data-platform');
         var pr=parseInt(card.getAttribute('data-price'))||null;
@@ -1279,8 +1415,9 @@ function setActiveTab(tabName) {
 }
 
 // -- Main Flow --
-function runComparison(silent){
+function runComparison(silent, forceRefresh){
   if(!silent)silent=false;
+  if(forceRefresh === undefined) forceRefresh = false;
   if(!isContextValid())return;var platform=detectPlatform();if(!platform)return;
   try{injectPanel();}catch(e){return;}
   // Only set loading spinner if we are comparing and it is a non-silent refresh
@@ -1289,84 +1426,183 @@ function runComparison(silent){
   if(!productData){
     setTimeout(function(){
       productData=extractProductData(platform);
-      if(!productData){if(!silent && activeTab === 'compare')setError('Could not extract product details.','extract');return;}
-      doCompare(productData,silent);
+      if(!productData){
+        if(!silent && activeTab === 'compare') {
+          var el=document.getElementById('scp-main-content');
+          if(el) el.innerHTML='<div style="text-align:center;padding:40px 24px"><div style="font-size:36px;margin-bottom:12px">🤔</div><div style="font-size:15px;font-weight:600;color:#1a1a2e">Navigate to a product page to compare prices.</div></div>';
+        }
+        return;
+      }
+      doCompare(productData,silent, forceRefresh);
     },2000);
     return;
   }
-  doCompare(productData,silent);
+  doCompare(productData,silent, forceRefresh);
 }
+
+function getCacheKey(productData) {
+  var id = productData.asin || productData.flipkartPid || productData.url;
+  return 'scp_cache_' + productData.platform + '_' + btoa(id).substring(0, 20);
+}
+
 var pollRetries=0;
-function doCompare(productData,silent){
-  msg({type:'COMPARE',payload:productData}).then(function(response){
-    if(!response)throw new Error('No response');
-    if(response.error){
-      if(!silent && activeTab === 'compare'){
-        response.code==='NO_TOKEN'?setError('Please log in via popup.','auth'):setError(response.error,'server');
+function doCompare(productData,silent, forceRefresh){
+  var cacheKey = getCacheKey(productData);
+
+  function executeCompare() {
+    msg({type:'COMPARE',payload:productData}).then(function(response){
+      var refreshBtn = document.getElementById('scp-refresh-btn');
+      if(refreshBtn) refreshBtn.style.animation = '';
+
+      if(!response)throw new Error('No response');
+      if(response.error){
+        if(!silent && activeTab === 'compare'){
+          response.code==='NO_TOKEN'?setError('Please log in via popup.','auth'):setError(response.error,'server');
+        }
+        return;
       }
-      return;
-    }
-    var data=response.data;if(!data||data.error){
-      if(!silent && activeTab === 'compare')setError(data?data.error:'Empty data');
-      return;
-    }
-    
-    // Only re-render if the data actually changed
-    var changed = hasDataChanged(cachedData, data);
-    cachedData=data;updateLiveDot('connected');
+      var data=response.data;if(!data||data.error){
+        if(!silent && activeTab === 'compare')setError(data?data.error:'Empty data');
+        return;
+      }
+      
+      // Save to chrome.storage if found/ready
+      if(data.status === 'found' || data.status === 'partial') {
+        var cacheObj = {};
+        cacheObj[cacheKey] = {
+          timestamp: Date.now(),
+          data: data
+        };
+        chrome.storage.local.set(cacheObj);
+      }
 
-    var isPollingNeeded = (data.status === 'queued' || data.status === 'partial');
+      processCompareData(data, silent);
+    }).catch(function(err){
+      var refreshBtn = document.getElementById('scp-refresh-btn');
+      if(refreshBtn) refreshBtn.style.animation = '';
+      if(!isContextValid())return;
+      if(!silent && activeTab === 'compare')setError('Could not connect to server','network');
+    });
+  }
 
-    if (changed || !silent) {
-      if(activeTab === 'compare'){
-        if(data.results && data.results.length > 0){
-          renderFound(data);
-          if(isPollingNeeded){
-            var el = document.getElementById('scp-main-content');
-            if(el && !document.getElementById('scp-poll-indicator')){
-              var indicator = document.createElement('div');
-              indicator.id = 'scp-poll-indicator';
-              indicator.style = 'display:flex;align-items:center;justify-content:center;padding:12px;gap:8px;background:rgba(124,92,252,0.05);border-radius:10px;margin-top:16px;font-size:12px;color:#64668b;';
-              indicator.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(124,92,252,0.15);border-top-color:#7c5cfc;border-radius:50%;animation:sc-spin 0.8s linear infinite"></div>Checking for more prices...';
-              el.appendChild(indicator);
-            }
+  if (forceRefresh) {
+    executeCompare();
+  } else {
+    chrome.storage.local.get([cacheKey], function(result) {
+      if (result[cacheKey]) {
+        var cached = result[cacheKey];
+        var age = Date.now() - cached.timestamp;
+        // 15 minute TTL
+        if (age < 15 * 60 * 1000) {
+          processCompareData(cached.data, silent);
+          return;
+        }
+      }
+      executeCompare();
+    });
+  }
+}
+
+function processCompareData(data, silent) {
+  // Only re-render if the data actually changed
+  var changed = hasDataChanged(cachedData, data);
+  cachedData=data;updateLiveDot('connected');
+  if (data.product_id) {
+    window.__scpProductId = data.product_id;
+  }
+
+  var isPollingNeeded = (data.status === 'queued' || data.status === 'partial');
+
+  if (changed || !silent) {
+    if(activeTab === 'compare'){
+      if(data.results && data.results.length > 0){
+        renderFound(data);
+        if(isPollingNeeded){
+          var el = document.getElementById('scp-main-content');
+          if(el && !document.getElementById('scp-poll-indicator')){
+            var indicator = document.createElement('div');
+            indicator.id = 'scp-poll-indicator';
+            indicator.style = 'display:flex;align-items:center;justify-content:center;padding:12px;gap:8px;background:rgba(124,92,252,0.05);border-radius:10px;margin-top:16px;font-size:12px;color:#64668b;';
+            indicator.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(124,92,252,0.15);border-top-color:#7c5cfc;border-radius:50%;animation:sc-spin 0.8s linear infinite"></div>Checking for more prices...';
+            el.appendChild(indicator);
           }
-        } else if(data.status === 'queued' || data.status === 'partial'){
-          // 'partial' means product is known but scraping is still in progress — show queued state
-          setQueued(pollRetries + 1);
-        } else {
-          setNoMatch();
         }
+      } else if(data.status === 'queued' || data.status === 'partial'){
+        // 'partial' means product is known but scraping is still in progress — show queued state
+        setQueued(pollRetries + 1);
       } else {
-        renderProductCard(data);
-        // Refresh active tab layout so it doesn't get stuck in a stale or loading state
-        if (activeTab === 'history') {
-          handleHistoryTabClick();
-        } else if (activeTab === 'alerts') {
-          handleAlertsTabClick();
-        } else if (activeTab === 'settings') {
-          handleSettingsTabClick();
-        }
-      }
-    }
-
-    if(isPollingNeeded){
-      pollRetries++;
-      if(pollRetries < 15){ // poll up to 15 times (~2.5 minutes)
-        if(pollInterval)clearTimeout(pollInterval);
-        var delay = Math.min(8000 + (pollRetries * 2000), 20000);
-        pollInterval=setTimeout(function(){runComparison(true)},delay);
-      } else {
-        pollRetries = 0;
-        var ind = document.getElementById('scp-poll-indicator');
-        if(ind)ind.remove();
+        setNoMatch();
       }
     } else {
-      pollRetries=0;
-      var ind = document.getElementById('scp-poll-indicator');
-      if(ind)ind.remove();
+      renderProductCard(data);
+      // Refresh active tab layout so it doesn't get stuck in a stale or loading state
+      if (activeTab === 'history') {
+        handleHistoryTabClick();
+      } else if (activeTab === 'alerts') {
+        handleAlertsTabClick();
+      } else if (activeTab === 'settings') {
+        handleSettingsTabClick();
+      }
     }
-  }).catch(function(err){if(!isContextValid())return;if(!silent && activeTab === 'compare')setError('Could not connect to server','network');});
+  }
+
+  if(isPollingNeeded){
+    pollRetries++;
+    if(pollRetries < 18){ // up to ~3 minutes
+      if(pollInterval) clearTimeout(pollInterval);
+      var delay = Math.min(5000 + (pollRetries * 3000), 20000);
+      var doPoll = function() {
+        var pid = window.__scpProductId;
+        if(pid){
+          // Poll the dedicated endpoint — no re-scraping, just read current DB state
+          msg({type:'API_REQUEST', method:'GET', endpoint:'/api/compare/poll/'+pid})
+            .then(function(r){
+              if(r && r.success && r.data){
+                var pollData = r.data;
+                // Merge into cachedData
+                if(pollData.results && pollData.results.length > 0){
+                  cachedData = Object.assign({}, cachedData, pollData);
+                  renderFound(cachedData);
+                }
+                // Keep polling if still partial
+                if(pollData.status === 'partial' || pollData.partial){
+                  isPollingNeeded = true;
+                  pollRetries++;
+                  if(pollRetries < 18){
+                    if(pollInterval) clearTimeout(pollInterval);
+                    var nextDelay = Math.min(5000 + (pollRetries * 3000), 20000);
+                    pollInterval = setTimeout(doPoll, nextDelay);
+                  } else {
+                    var ind = document.getElementById('scp-poll-indicator');
+                    if(ind) ind.remove();
+                  }
+                } else {
+                  pollRetries = 0;
+                  var ind = document.getElementById('scp-poll-indicator');
+                  if(ind) ind.remove();
+                }
+              }
+            })
+            .catch(function(){
+              // Poll failed — fallback to runComparison
+              runComparison(true);
+            });
+        } else {
+          // No product_id yet — fallback to full re-compare
+          runComparison(true);
+        }
+      };
+      pollInterval = setTimeout(doPoll, delay);
+    } else {
+      pollRetries = 0;
+      var ind = document.getElementById('scp-poll-indicator');
+      if(ind) ind.remove();
+    }
+  } else {
+    pollRetries=0;
+    var ind = document.getElementById('scp-poll-indicator');
+    if(ind)ind.remove();
+  }
 }
 
 // -- SPA Nav Observer --

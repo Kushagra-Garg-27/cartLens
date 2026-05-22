@@ -51,6 +51,10 @@ function cleanQueryForSearch(q) {
 
   // Remove standalone trailing colors (e.g., " - Black", " - White")
   clean = clean.replace(/\s*-\s*(?:black|white|blue|red|green|yellow|pink|purple|gold|silver|grey|gray)\b/gi, "");
+  
+  // Remove trailing "..." or "...more" from truncated titles
+  clean = clean.replace(/\.{2,}more$/i, "");
+  clean = clean.replace(/\.{2,}$/, "");
 
   clean = clean.replace(/[,|].*$/g, "");
   return clean.replace(/\s+/g, " ").trim();
@@ -141,12 +145,18 @@ async function enqueueAllPlatforms(productId, excludePlatform) {
     const searchUrl = platformConfig.searchUrl(searchQuery);
 
     // Check for existing pending/running jobs to prevent spam
-    const existing = await db.query(
+    const existingJob = await db.query(
       "SELECT id FROM scrape_jobs WHERE product_id = $1 AND platform = $2 AND status IN ('pending', 'running')",
       [productId, platformConfig.scraper]
     );
 
-    if (existing.rows.length === 0) {
+    // Check for an existing valid listing to prevent redundant scraping of platforms we already have
+    const existingListing = await db.query(
+      "SELECT id FROM listings WHERE product_id = $1 AND platform = $2",
+      [productId, platformConfig.scraper]
+    );
+
+    if (existingJob.rows.length === 0 && existingListing.rows.length === 0) {
       // Use the scraper key for the platform column (maps to scraper dispatch)
       const result = await db.query(
         `INSERT INTO scrape_jobs (product_id, listing_url, platform, priority)

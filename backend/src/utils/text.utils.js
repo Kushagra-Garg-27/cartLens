@@ -98,7 +98,13 @@ function matchScore(titleA, titleB, brandA, brandB) {
   const intersection = [...setA].filter((t) => setB.has(t));
   const union = new Set([...setA, ...setB]);
   if (union.size === 0) return 0;
-  return intersection.length / union.size;
+  
+  const minSize = Math.min(setA.size, setB.size);
+  if (minSize === 0) return 0;
+  
+  const overlap = intersection.length / minSize;
+  const jaccard = intersection.length / union.size;
+  return (overlap * 0.7) + (jaccard * 0.3);
 }
 
 /**
@@ -147,6 +153,8 @@ function matchScoreWeighted(titleA, brandA, titleB, brandB) {
 
   let intersectionWeight = 0;
   let unionWeight = 0;
+  let weightA = 0;
+  let weightB = 0;
 
   const allTokens = new Set([...mapA.keys(), ...mapB.keys()]);
   for (const token of allTokens) {
@@ -154,9 +162,19 @@ function matchScoreWeighted(titleA, brandA, titleB, brandB) {
     const wb = mapB.get(token) || 0;
     intersectionWeight += Math.min(wa, wb);
     unionWeight += Math.max(wa, wb);
+    weightA += wa;
+    weightB += wb;
   }
 
-  return unionWeight === 0 ? 0 : intersectionWeight / unionWeight;
+  if (unionWeight === 0) return 0;
+  
+  const minWeight = Math.min(weightA, weightB);
+  if (minWeight === 0) return 0;
+  
+  const overlap = intersectionWeight / minWeight;
+  const jaccard = intersectionWeight / unionWeight;
+  
+  return (overlap * 0.7) + (jaccard * 0.3);
 }
 
 /**

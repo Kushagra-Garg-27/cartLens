@@ -3,9 +3,14 @@
  * - Added gemini.apiKey reading GEMINI_API_KEY from env (optional)
  */
 const dotenv = require("dotenv");
+const path = require("path");
+
 dotenv.config();
+// Load root .env file as well to support VITE_GEMINI_API_KEY
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const required = [
+
   "DATABASE_URL",
   "JWT_SECRET",
 ];

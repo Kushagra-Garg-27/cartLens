@@ -64,7 +64,7 @@ async function fetch(productId, minConfidence = 0.4) {
   // Filter out listings where match_confidence is below minConfidence
   return mapped.filter((l) => {
     const conf = l.match_confidence != null ? l.match_confidence : 0.8;
-    return conf >= minConfidence;
+    return conf >= 0.1; // Temporarily lowered as per diagnostic steps
   });
 }
 

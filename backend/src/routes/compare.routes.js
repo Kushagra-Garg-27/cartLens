@@ -149,6 +149,7 @@ router.post("/", authMiddleware, compareRateLimiter, async (req, res) => {
           processScrapeJobs().catch(err => {
             logger.error({ service: "api", event: "bg_scrape_error", error: err.message });
           });
+          await new Promise(resolve => setTimeout(resolve, 3000)); // 3s head start for fast scrapers
         }
       } catch (err) {
         logger.error({ service: "api", event: "enqueue_error", error: err.message });
@@ -244,8 +245,22 @@ router.post("/", authMiddleware, compareRateLimiter, async (req, res) => {
     const productRow = await db.query("SELECT canonical_name, brand FROM products WHERE id = $1", [productId]);
     const product_title = (productRow.rows[0] && productRow.rows[0].canonical_name) || title || "Product";
 
-    if (results.length >= 2) {
-      // Full comparison — return all real data
+    // Always enqueue scrape jobs for missing platforms (jobEnqueuer handles deduping with existing jobs/listings)
+    let jobIds = [];
+    try {
+      jobIds = await jobEnqueuer.enqueueAllPlatforms(productId, platform);
+      if (jobIds.length > 0) {
+        processScrapeJobs().catch(err => {
+          logger.error({ service: "api", event: "bg_scrape_error", error: err.message });
+        });
+        await new Promise(resolve => setTimeout(resolve, 3000)); // 3s head start for fast scrapers
+      }
+    } catch (err) {
+      logger.error({ service: "api", event: "enqueue_error", error: err.message });
+    }
+
+    if (jobIds.length === 0) {
+      // No new jobs enqueued — return all real data (we are done)
       logger.info({
         service: "api",
         event: "compare_found",
@@ -262,19 +277,6 @@ router.post("/", authMiddleware, compareRateLimiter, async (req, res) => {
         job_ids: [],
         ...assembled,
       });
-    }
-
-    // Fewer than 2 real results — enqueue scrape jobs for missing platforms, return partial
-    let jobIds = [];
-    try {
-      jobIds = await jobEnqueuer.enqueueAllPlatforms(productId, platform);
-      if (jobIds.length > 0) {
-        processScrapeJobs().catch(err => {
-          logger.error({ service: "api", event: "bg_scrape_error", error: err.message });
-        });
-      }
-    } catch (err) {
-      logger.error({ service: "api", event: "enqueue_error", error: err.message });
     }
 
     logger.info({
@@ -443,5 +445,65 @@ function annotateResultsWithAge(results) {
     }
   }
 }
+
+// GET /api/compare/poll/:product_id
+// Extension polls this after receiving status=queued or status=partial.
+// Returns current listings for a product without re-triggering scrapes.
+router.get("/poll/:product_id", authMiddleware, async (req, res) => {
+  try {
+    const { product_id } = req.params;
+
+    const listings = await listingFetcher.fetch(product_id);
+    const assembled = await responseAssembler.assemble(product_id, listings, req.userId);
+    let results = assembled.results || [];
+
+    // Annotate freshness
+    annotateResultsWithAge(results);
+
+    // Personalized ranking if multiple results
+    if (results.length > 1) {
+      const productRow = await db.query(
+        "SELECT category, canonical_name, brand FROM products WHERE id = $1",
+        [product_id]
+      );
+      const category = (productRow.rows[0] && productRow.rows[0].category) || "general";
+      results = await ranker.rankResults(req.userId, results, category);
+      assembled.results = results;
+
+      const product_title = (productRow.rows[0] && productRow.rows[0].canonical_name) || "Product";
+      return res.json({
+        status: results.length >= 2 ? "found" : "partial",
+        product_id,
+        product_title,
+        partial: results.length < 2,
+        ...assembled,
+      });
+    }
+
+    // Still only 1 result — check if any jobs are still running
+    const pendingJobs = await db.query(
+      "SELECT COUNT(*) AS cnt FROM scrape_jobs WHERE product_id = $1 AND status IN ('pending', 'running')",
+      [product_id]
+    );
+    const stillRunning = parseInt(pendingJobs.rows[0].cnt) > 0;
+
+    const productRow = await db.query(
+      "SELECT canonical_name FROM products WHERE id = $1",
+      [product_id]
+    );
+    const product_title = (productRow.rows[0] && productRow.rows[0].canonical_name) || "Product";
+
+    return res.json({
+      status: stillRunning ? "partial" : "found",
+      product_id,
+      product_title,
+      partial: stillRunning,
+      ...assembled,
+    });
+  } catch (err) {
+    logger.error({ service: "api", event: "poll_error", error: err.message });
+    res.status(500).json({ error: "Internal error", code: "SERVER_ERROR" });
+  }
+});
 
 module.exports = router;
